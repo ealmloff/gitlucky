@@ -38,7 +38,7 @@ fn main() {
 
 #[component]
 fn App() -> Element {
-    // Build cool things ✌️
+    // Build cool things 🦧🦧🦧
 
     rsx! {
         // Global app resources
