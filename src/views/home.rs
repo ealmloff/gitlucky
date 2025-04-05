@@ -17,49 +17,48 @@ pub fn Home() -> Element {
     let files = files.as_ref().unwrap();
 
     rsx! {
-        pre {
-            for file in &files.files {
-                div {
-                    class: "flex flex-col w-full h-1/2 font-mono",
-                    div {
-                        class: "flex flex-row w-full border-t font-bold pl-8 sticky top-0 backdrop-blur-sm bg-[rgba(195,195,195,0.8)]",
+        div { class: "fixed flex flex-col w-full h-[100vh] font-mono",
+            video {
+                autoplay: true,
+                loop: true,
+                muted: true,
+                class: "w-full h-full object-cover",
+                source {
+                    src: asset!("/assets/minecraft.mp4"),
+                    type: "video/mp4",
+                }
+            }
+        }
+        div {
+            class: "w-full h-[100vh] font-mono overflow-y-scroll",
+            div { class: "absolute flex flex-col backdrop-blur-xs bg-[rgba(255,255,255,0.5)]",
+                for file in &files.files {
+                    div { class: "flex flex-row w-full border-t font-bold pl-8 sticky h-[25px] top-0 overflow-ellipsis overflow-clip bg-[rgba(195,195,195)]",
                         "{file.old_path} -> {file.new_path}"
                     }
-                    div {
-                        class: "flex flex-col w-full h-full",
+                    div { class: "flex flex-col w-full",
                         for chunk in &file.changes {
-                            div {
-                                class: "flex flex-row w-full border-b pl-8 sticky top-[25px] backdrop-blur-sm bg-[rgba(195,195,195,0.8)]",
+                            div { class: "flex flex-row w-full border-b pl-8 sticky top-[25px] h-[25px] overflow-ellipsis overflow-clip bg-[rgba(195,195,195)]",
                                 "{chunk.old_location} -> {chunk.new_location} @@ {chunk.context}"
                             }
                             for line in &chunk.contents {
                                 match line.status {
                                     Status::Added => rsx! {
-                                        pre {
-                                            class: "bg-green-200",
-                                            span {
-                                                class: "p-2",
-                                                "+"
-                                            }
+                                        pre { class: "whitespace-pre bg-[rgba(200,255,200,.8)]",
+                                            span { class: "p-2", "+" }
                                             "{line.contents}"
                                         }
                                     },
                                     Status::Removed => rsx! {
-                                        pre {
-                                            class: "bg-red-200",
-                                            span {
-                                                class: "p-2",
-                                                "-"
-                                            }
+                                        pre { class: "whitespace-pre bg-[rgba(255,200,200,.8)]",
+                                            span { class: "p-2", "-" }
                                             "{line.contents}"
                                         }
                                     },
                                     Status::Unchanged => rsx! {
                                         pre {
-                                            span {
-                                                class: "p-2",
-                                                " "
-                                            }
+                                            class: "whitespace-pre",
+                                            span { class: "p-2", " " }
                                             "{line.contents}"
                                         }
                                     },

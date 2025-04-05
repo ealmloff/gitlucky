@@ -50,8 +50,19 @@ pub struct Server {
 impl Server {
     pub async fn new() -> Self {
         println!("Starting server...");
+        #[cfg(feature = "dioxus")]
+        let addr = dioxus::cli_config::fullstack_address_or_localhost();
+        #[cfg(not(feature = "dioxus"))]
         let addr = "0.0.0.0:8080";
-        let router = Router::new();
+        let mut router = Router::new();
+        #[cfg(feature = "dioxus")]
+        {
+            router = router.serve_dioxus_application(ServeConfig::builder(), App);
+        }
+        #[cfg(not(feature = "dioxus"))]
+        {
+            router = router.route("/", post(webhook_handler));
+        }
 
         let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
         axum::serve(listener, router.clone()).await.unwrap();

@@ -10,13 +10,15 @@ edition = "2021"
 dioxus = { version = "0.6.0", features = ["router", "fullstack"] }
 axum = { version = "0.7", optional = true }
 tokio = { version = "1.44.1", features = ["full"], optional = true }
-octocrab = "0.44.0"
+octocrab = { version = "0.44.0", optional = true }
 serde = "1.0.219"
+reqwest = { version = "0.12.15", default-features = false, features = ["rustls-tls"] }
 
 [features]
 default = ["server"]
 mobile = ["dioxus/mobile"]
-server = ["dioxus/server", "dep:axum", "dep:tokio"]
+server = ["dioxus/server", "dep:axum", "dep:tokio", "dep:octocrab"]
+dioxus = []
 
 [profile]
 
