@@ -32,4 +32,5 @@ export PATH="$PATH:$ANDROID_HOME/emulator"
 ```bash
 cargo install dioxus-cli
 dx serve --platform android
+dx serve --platform desktop --features dioxus --no-default-features
 ```

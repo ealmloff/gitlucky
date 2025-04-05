@@ -1,1 +1,61 @@
 @import "tailwindcss";
+
+.card {
+  margin-bottom: calc(10px - 100vh);
+}
+.down-card {
+  margin-bottom: calc(10px - 100vh);
+  animation-name: card-down;
+  animation-duration: 1s;
+}
+.right-card {
+  margin-bottom: calc(10px - 100vh);
+  animation-name: card-right;
+  animation-duration: 1s;
+}
+.left-card {
+  margin-bottom: calc(10px - 100vh);
+  animation-name: card-left;
+  animation-duration: 1s;
+}
+.in-card {
+  margin-bottom: calc(-100vh);
+  animation-name: card-in;
+  animation-duration: 1s;
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes card-down {
+  from {
+    transform: translateY(0px);
+  }
+  to {
+    transform: translateY(10px);
+  }
+}
+
+@keyframes card-left {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(-8deg) translateX(-110vw);
+  }
+}
+
+@keyframes card-right {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(8deg) translateX(110vw);
+  }
+}

@@ -1,67 +1,87 @@
 use dioxus::prelude::*;
 use std::{fmt::Display, str::FromStr};
 
+
 #[component]
 pub fn Home() -> Element {
-    let files = use_server_future(move || async move {
+    let mut transitioning = use_signal(|| false);
+    rsx! {
+        for card in 0..4 {
+            Card {
+                class: if transitioning() { if card == 0 { "in-card" } else if card == 3 { "right-card" } else { "down-card" } } else { "card" },
+                onclick: move |_| if card == 3 {
+                    transitioning.set(!transitioning());
+                },
+                show_img: card == 3,
+                url: "https://github.com/floneum/floneum/pull/361.diff"
+            }
+        }
+    }
+}
+
+#[component]
+fn Card(class: String, url: ReadOnlySignal<String>, onclick: Callback<(), ()>, show_img: bool) -> Element {
+    const VIDEO: Asset = asset!("/assets/minecraft.webm", AssetOptions::Unknown);
+    let files = use_resource(move || async move {
         let response = reqwest::get(
-            "https://patch-diff.githubusercontent.com/raw/DioxusLabs/dioxus/pull/3797.diff",
+            url(),
         )
         .await
         .unwrap();
         let text = response.text().await.unwrap();
         GitDiff::from_str(&text).unwrap()
-    })?;
-
-    let files = files.read_unchecked();
-    let files = files.as_ref().unwrap();
+    }).suspend()?.read_unchecked();
 
     rsx! {
-        div { class: "fixed flex flex-col w-full h-[100vh] font-mono",
-            video {
-                autoplay: true,
-                loop: true,
-                muted: true,
-                class: "w-full h-full object-cover",
-                source {
-                    src: asset!("/assets/minecraft.mp4"),
-                    type: "video/mp4",
+        div {
+            class: "w-[100vw] h-[100vh] {class}",
+            div { class: "absolute flex flex-col w-[100vw] h-[100vh] font-mono",
+                video {
+                    autoplay: true,
+                    loop: true,
+                    muted: true,
+                    class: "w-[100vw] h-full object-cover",
+                    source {
+                        src: VIDEO,
+                        type: "video/webm",
+                    }
                 }
             }
-        }
-        div {
-            class: "w-full h-[100vh] font-mono overflow-y-scroll",
-            div { class: "absolute flex flex-col backdrop-blur-xs bg-[rgba(255,255,255,0.5)]",
-                for file in &files.files {
-                    div { class: "flex flex-row w-full border-t font-bold pl-8 sticky h-[25px] top-0 overflow-ellipsis overflow-clip bg-[rgba(195,195,195)]",
-                        "{file.old_path} -> {file.new_path}"
-                    }
-                    div { class: "flex flex-col w-full",
-                        for chunk in &file.changes {
-                            div { class: "flex flex-row w-full border-b pl-8 sticky top-[25px] h-[25px] overflow-ellipsis overflow-clip bg-[rgba(195,195,195)]",
-                                "{chunk.old_location} -> {chunk.new_location} @@ {chunk.context}"
-                            }
-                            for line in &chunk.contents {
-                                match line.status {
-                                    Status::Added => rsx! {
-                                        pre { class: "whitespace-pre bg-[rgba(200,255,200,.8)]",
-                                            span { class: "p-2", "+" }
-                                            "{line.contents}"
-                                        }
-                                    },
-                                    Status::Removed => rsx! {
-                                        pre { class: "whitespace-pre bg-[rgba(255,200,200,.8)]",
-                                            span { class: "p-2", "-" }
-                                            "{line.contents}"
-                                        }
-                                    },
-                                    Status::Unchanged => rsx! {
-                                        pre {
-                                            class: "whitespace-pre",
-                                            span { class: "p-2", " " }
-                                            "{line.contents}"
-                                        }
-                                    },
+            div {
+                class: "absolute w-[100vw] h-[100vh] font-mono overflow-y-scroll rounded-t-lg",
+                div { class: "flex flex-col backdrop-blur-xs bg-[rgba(255,255,255,0.5)]",
+                    onclick: move |_| onclick(()),
+                    for file in &files.files {
+                        div { class: "flex flex-row w-[100vw] border-t font-bold pl-8 sticky h-[25px] top-0 overflow-ellipsis overflow-clip bg-[rgba(195,195,195)]",
+                            "{file.old_path} -> {file.new_path}"
+                        }
+                        div { class: "flex flex-col w-[100vw]",
+                            for chunk in &file.changes {
+                                div { class: "flex flex-row w-[100vw] border-b pl-8 sticky top-[25px] h-[25px] overflow-ellipsis overflow-clip bg-[rgba(195,195,195)]",
+                                    "{chunk.old_location} -> {chunk.new_location} @@ {chunk.context}"
+                                }
+                                for line in &chunk.contents {
+                                    match line.status {
+                                        Status::Added => rsx! {
+                                            pre { class: "whitespace-pre truncate bg-[rgba(200,255,200,.8)]",
+                                                span { class: "p-2", "+" }
+                                                "{line.contents}"
+                                            }
+                                        },
+                                        Status::Removed => rsx! {
+                                            pre { class: "whitespace-pre truncate bg-[rgba(255,200,200,.8)]",
+                                                span { class: "p-2", "-" }
+                                                "{line.contents}"
+                                            }
+                                        },
+                                        Status::Unchanged => rsx! {
+                                            pre {
+                                                class: "whitespace-pre truncate",
+                                                span { class: "p-2", " " }
+                                                "{line.contents}"
+                                            }
+                                        },
+                                    }
                                 }
                             }
                         }
@@ -106,18 +126,8 @@ impl FromStr for GitDiff {
                                             new_location,
                                             contents: Vec::new(),
                                         });
-                                    } else {
-                                        panic!(
-                                            "failed to parse 1 {} {}",
-                                            old.trim_matches('-'),
-                                            new.trim_matches('+')
-                                        );
                                     }
-                                } else {
-                                    panic!("failed to parse 2");
                                 }
-                            } else {
-                                panic!("failed to parse {line}");
                             }
                         } else if let Some(line) = line.strip_prefix("+") {
                             changes.last_mut().unwrap().contents.push(Line {
