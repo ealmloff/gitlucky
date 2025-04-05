@@ -3,10 +3,9 @@ use dioxus::prelude::*;
 #[cfg(feature = "server")]
 use crate::server::server::Server;
 #[cfg(not(feature = "server"))]
-use components::Navbar;
-#[cfg(not(feature = "server"))]
 use views::Home;
 
+#[cfg(feature = "server")]
 mod ai;
 mod components;
 #[cfg(feature = "server")]
@@ -18,7 +17,6 @@ mod views;
 #[derive(Debug, Clone, Routable, PartialEq)]
 #[rustfmt::skip]
 enum Route {
-    #[layout(Navbar)]
     #[route("/")]
     Home {},
 }

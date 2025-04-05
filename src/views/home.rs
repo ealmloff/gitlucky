@@ -22,7 +22,7 @@ pub fn Home() -> Element {
 #[component]
 fn Card(class: String, url: ReadOnlySignal<String>, onclick: Callback<(), ()>, show_img: bool) -> Element {
     const VIDEO: Asset = asset!("/assets/minecraft.webm", AssetOptions::Unknown);
-    let files = use_server_future(move || async move {
+    let files = use_resource(move || async move {
         let response = reqwest::get(
             url(),
         )
@@ -30,10 +30,7 @@ fn Card(class: String, url: ReadOnlySignal<String>, onclick: Callback<(), ()>, s
         .unwrap();
         let text = response.text().await.unwrap();
         GitDiff::from_str(&text).unwrap()
-    })?;
-
-    let files = files.read_unchecked();
-    let files = files.as_ref().unwrap();
+    }).suspend()?.read_unchecked();
 
     rsx! {
         div {
