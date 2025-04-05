@@ -1,10 +1,12 @@
 use dioxus::prelude::*;
 
+#[cfg(feature = "server")]
 use crate::server::server::Server;
 use components::Navbar;
 use views::Home;
 
 mod components;
+#[cfg(feature = "server")]
 mod github_bot;
 mod server;
 mod views;
@@ -25,7 +27,7 @@ const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 async fn main() {
     use dioxus::logger::tracing::Level;
 
-    let dioxus_logger = dioxus::logger::init(Level::TRACE);
+    // let dioxus_logger = dioxus::logger::init(Level::TRACE);
     let server = Server::new().await;
 }
 
