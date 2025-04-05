@@ -44,13 +44,13 @@ pub fn Home() -> Element {
                             for line in &chunk.contents {
                                 match line.status {
                                     Status::Added => rsx! {
-                                        pre { class: "bg-green-200 whitespace-pre",
+                                        pre { class: "whitespace-pre bg-[rgba(200,255,200,.8)]",
                                             span { class: "p-2", "+" }
                                             "{line.contents}"
                                         }
                                     },
                                     Status::Removed => rsx! {
-                                        pre { class: "bg-red-200 whitespace-pre",
+                                        pre { class: "whitespace-pre bg-[rgba(255,200,200,.8)]",
                                             span { class: "p-2", "-" }
                                             "{line.contents}"
                                         }

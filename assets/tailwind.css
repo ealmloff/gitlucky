@@ -297,6 +297,15 @@
   .bg-\[rgba\(195\,195\,195\,0\.8\)\] {
     background-color: rgba(195,195,195,0.8);
   }
+  .bg-\[rgba\(200\,255\,200\)\] {
+    background-color: rgba(200,255,200);
+  }
+  .bg-\[rgba\(200\,255\,200\,\.8\)\] {
+    background-color: rgba(200,255,200,.8);
+  }
+  .bg-\[rgba\(255\,200\,200\,\.8\)\] {
+    background-color: rgba(255,200,200,.8);
+  }
   .bg-\[rgba\(255\,255\,255\,0\.5\)\] {
     background-color: rgba(255,255,255,0.5);
   }
