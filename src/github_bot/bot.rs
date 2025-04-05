@@ -1,90 +1,63 @@
-use octocrab::apps::AppsRequestHandler;
-use octocrab::models::Installation;
-use octocrab::params::State;
+use crate::server::server::PullRequestInfo;
 
-struct Bot {
-    token: String,
-    octocrab: octocrab::Octocrab,
-}
+pub async fn merge(potential_merge: PullRequestInfo) {
+    let PullRequestInfo {
+        pull_request,
+        left_votes,
+        right_votes,
+    } = potential_merge;
 
-struct PotentialMerge {
-    repo_owner: String,
-    repo_name: String,
-    branch_to_merge_into: String,
-    branch_to_merge: String,
-}
+    let token = pull_request.key.clone();
+    let people_accepted = right_votes;
+    let people_denied = left_votes;
+    let branch_to_merge = pull_request.branch_to_merge.clone();
+    let branch_to_merge_into = pull_request.branch_to_merge_into.clone();
+    let repo_owner = pull_request.repo_owner.clone();
+    let repo_name = pull_request.repo_name.clone();
 
-impl Bot {
-    fn new(token: String) -> Self {
-        let octocrab = octocrab::Octocrab::builder()
-            .personal_token(token.clone())
-            .build()
-            .unwrap();
-
-        Self { token, octocrab }
-    }
-
-    async fn merge(&self, potential_merge: PotentialMerge) {
-        let PotentialMerge {
-            repo_owner,
-            repo_name,
-            branch_to_merge_into,
-            branch_to_merge,
-        } = potential_merge;
-
-        let _ = self
-            .octocrab
+    if let Ok(octocrab) = octocrab::Octocrab::builder().personal_token(token).build() {
+        let _ = octocrab
             .repos(repo_owner, repo_name)
             .merge(&branch_to_merge, branch_to_merge_into)
-            .commit_message(format!("The people have merged {}", branch_to_merge))
+            .commit_message(format!(
+                "The people have merged {}, {} accepted, {} denied.",
+                branch_to_merge, people_accepted, people_denied
+            ))
             .send()
             .await;
     }
-
-    async fn get_all_potential_merges(&self) -> Result<Vec<PotentialMerge>, octocrab::Error> {
-        let my_repos = self
-            .octocrab
-            .current()
-            .list_repos_for_authenticated_user()
-            .type_("owner")
-            .sort("updated")
-            .per_page(100)
-            .send()
-            .await?;
-
-        let mut potential_merges = Vec::new();
-        for repo in my_repos {
-            let pull_requests = self
-                .octocrab
-                .pulls(&repo.owner.clone().unwrap().login, &repo.name)
-                .list()
-                .state(State::Open)
-                .send()
-                .await?;
-
-            for pull_request in pull_requests {
-                potential_merges.push(PotentialMerge {
-                    repo_owner: repo.owner.clone().unwrap().login,
-                    repo_name: repo.name.clone(),
-                    branch_to_merge_into: pull_request.base.label.unwrap(),
-                    branch_to_merge: pull_request.head.label.unwrap(),
-                });
-            }
-        }
-
-        Ok(potential_merges)
-    }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub async fn deny_merge(potential_merge: PullRequestInfo) {
+    let mut should_return = false;
+    let pr_number = potential_merge.pull_request.pr_number;
+    let token = potential_merge.pull_request.key.clone();
+    let people_accepted = potential_merge.right_votes;
+    let people_denied = potential_merge.left_votes;
+    let repo_owner = potential_merge.pull_request.repo_owner.clone();
+    let repo_name = potential_merge.pull_request.repo_name.clone();
 
-    #[cfg(feature = "server")]
-    #[tokio::test]
-    async fn test_merge() {
-        let bot =
-            Bot::new(std::env::var("GITHUB_TOKEN").expect("GITHUB_TOKEN env variable is required"));
-        bot.get_all_potential_merges().await.unwrap();
-    }
+    let octocrab = octocrab::Octocrab::builder()
+        .personal_token(token)
+        .build()
+        .unwrap();
+
+    // Comment on the PR
+    let _ = octocrab
+        .issues(&repo_owner, &repo_name)
+        .create_comment(
+            pr_number,
+            format!(
+                "The people have spoken! {} accepted, {} denied.",
+                people_accepted, people_denied
+            ),
+        )
+        .await;
+
+    let _ = octocrab
+        .pulls(repo_owner, repo_name)
+        .update(pr_number)
+        .state(octocrab::params::pulls::State::Closed)
+        .send()
+        .await;
 }

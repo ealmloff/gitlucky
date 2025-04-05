@@ -20,8 +20,6 @@ mobile = ["dioxus/mobile"]
 server = ["dioxus/server", "dep:axum", "dep:tokio", "dep:octocrab"]
 dioxus = []
 
-[profile]
-
 [profile.wasm-dev]
 inherits = "dev"
 opt-level = 1

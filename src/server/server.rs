@@ -2,27 +2,35 @@ use axum::{routing::post, Json, Router};
 
 use dioxus::prelude::{DioxusRouterExt, ServeConfig};
 use octocrab::models::events::payload::PullRequestEventPayload;
-use std::sync::{Arc, RwLock};
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+    time::Duration,
+};
 
 use crate::App;
 
 #[derive(Debug, Clone)]
 pub struct PullRequest {
-    diff_url: String,
-    title: String,
-    additions: usize,
-    deletions: usize,
-    changed_files: usize,
-    author: String,
-    repo_name: String,
-    key: String,
+    pub diff_url: String,
+    pub title: String,
+    pub additions: usize,
+    pub deletions: usize,
+    pub changed_files: usize,
+    pub author: String,
+    pub repo_name: String,
+    pub key: String,
+    pub branch_to_merge: String,
+    pub branch_to_merge_into: String,
+    pub pr_number: u64,
+    pub repo_owner: String,
 }
 
 #[derive(Debug, Clone)]
-struct PullRequestInfo {
-    pull_request: PullRequest,
-    left_votes: usize,
-    right_votes: usize,
+pub struct PullRequestInfo {
+    pub pull_request: PullRequest,
+    pub left_votes: usize,
+    pub right_votes: usize,
 }
 
 impl PullRequest {
@@ -45,13 +53,16 @@ impl PullRequest {
             author: author,
             repo_name: repo_name.name,
             key: key,
+            pr_number: payload.pull_request.number,
+            branch_to_merge: payload.pull_request.head.label.unwrap(),
+            branch_to_merge_into: payload.pull_request.base.label.unwrap(),
         }
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct Server {
-    all_prs: Arc<RwLock<Vec<PullRequestInfo>>>,
+    all_prs: Arc<RwLock<HashMap<String, PullRequestInfo>>>,
 }
 
 impl Server {
@@ -70,7 +81,7 @@ impl Server {
         let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
         axum::serve(listener, router.clone()).await.unwrap();
         let server = Self {
-            all_prs: Arc::new(RwLock::new(Vec::new())),
+            all_prs: Arc::new(RwLock::new(HashMap::new())),
         };
 
         #[cfg(not(feature = "dioxus"))]
@@ -91,33 +102,54 @@ impl Server {
     async fn webhook_handler(&self, raw_payload: Json<PullRequestEventPayload>) {
         let payload = raw_payload.0;
         let pull_request = PullRequest::new_from_payload(payload.clone());
-        self.all_prs.write().unwrap().push(PullRequestInfo {
-            pull_request: pull_request.clone(),
-            left_votes: 0,
-            right_votes: 0,
-        });
+        self.all_prs.write().unwrap().insert(
+            pull_request.diff_url.clone(),
+            PullRequestInfo {
+                pull_request: pull_request.clone(),
+                left_votes: 0,
+                right_votes: 0,
+            },
+        );
     }
 
     pub fn get_all_prs(&self) -> Vec<PullRequest> {
         let all_prs = self.all_prs.read().unwrap();
-        all_prs.iter().map(|pr| pr.pull_request.clone()).collect()
+        all_prs
+            .iter()
+            .map(|(_, pr)| pr.pull_request.clone())
+            .collect()
     }
 
     pub fn vote_on_pr(&self, diff_url: String, direction: Direction) {
         let mut all_prs = self.all_prs.write().unwrap();
-        for pr in all_prs.iter_mut() {
-            if pr.pull_request.diff_url == diff_url {
-                match direction {
-                    Direction::Left => pr.left_votes += 1,
-                    Direction::Right => pr.right_votes += 1,
-                }
-                break;
+        if let Some(pr) = all_prs.get_mut(&diff_url) {
+            match direction {
+                Direction::Left => pr.left_votes += 1,
+                Direction::Right => pr.right_votes += 1,
+            }
+        }
+    }
+
+    async fn finalize_vote(&self, diff_url: String) {
+        // wait for the vote to be finalized after 30 minutes
+        const VOTE_TIME: Duration = Duration::from_secs(60 * 30);
+        tokio::time::sleep(VOTE_TIME).await;
+        let mut all_prs = self.all_prs.write().unwrap();
+        let pr = all_prs.remove(&diff_url);
+
+        if let Some(pr) = pr {
+            if pr.left_votes > pr.right_votes {
+                // merge the PR
+                crate::github_bot::bot::merge(pr).await;
+            } else {
+                // deny the PR
+                crate::github_bot::bot::deny_merge(pr).await;
             }
         }
     }
 }
 
-enum Direction {
+pub enum Direction {
     Left,
     Right,
 }
