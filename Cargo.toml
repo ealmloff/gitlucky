@@ -1,0 +1,29 @@
+[package]
+name = "gitlucky"
+version = "0.1.0"
+authors = ["Evan Almloff <evanalmloff@gmail.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+dioxus = { version = "0.6.0", features = ["router", "fullstack"] }
+axum = { version = "0.8.3", optional = true }
+tokio = { version = "1.44.1", features = ["full"], optional = true }
+
+[features]
+default = []
+mobile = ["dioxus/mobile"]
+server = ["dioxus/server", "dep:axum", "dep:tokio"]
+
+[profile]
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"
