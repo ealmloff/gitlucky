@@ -48,7 +48,7 @@ pub async fn deny_merge(potential_merge: PullRequestInfo) {
         .create_comment(
             pr_number,
             format!(
-                "The people have spoken! {} accepted, {} denied.",
+                "The people have spoken and have denied this PR! {} accepted, {} denied.",
                 people_accepted, people_denied
             ),
         )

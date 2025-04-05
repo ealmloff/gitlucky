@@ -26,6 +26,12 @@ pub struct PullRequest {
     pub repo_owner: String,
 }
 
+impl PullRequest {
+    pub fn get_audio_path(&self) -> String {
+        format!("audio/{}.mp3", self.diff_url)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct PullRequestInfo {
     pub pull_request: PullRequest,
@@ -34,7 +40,7 @@ pub struct PullRequestInfo {
 }
 
 impl PullRequest {
-    fn new_from_payload(payload: PullRequestEventPayload) -> Self {
+    async fn new_from_payload(payload: PullRequestEventPayload) -> Self {
         let diff_url = payload.pull_request.diff_url.clone().unwrap();
         let title = payload.pull_request.title.clone().unwrap();
         let additions = payload.pull_request.additions.unwrap();
@@ -43,6 +49,7 @@ impl PullRequest {
         let author = payload.pull_request.user.unwrap().login.clone();
         let repo_name = payload.pull_request.repo.unwrap();
         let key = payload.pull_request.head.sha.clone();
+        let repo_owner = payload.pull_request.base.repo.unwrap().owner.unwrap().login;
 
         Self {
             diff_url: diff_url.to_string(),
@@ -56,6 +63,7 @@ impl PullRequest {
             pr_number: payload.pull_request.number,
             branch_to_merge: payload.pull_request.head.label.unwrap(),
             branch_to_merge_into: payload.pull_request.base.label.unwrap(),
+            repo_owner,
         }
     }
 }
@@ -101,7 +109,7 @@ impl Server {
 
     async fn webhook_handler(&self, raw_payload: Json<PullRequestEventPayload>) {
         let payload = raw_payload.0;
-        let pull_request = PullRequest::new_from_payload(payload.clone());
+        let pull_request = PullRequest::new_from_payload(payload.clone()).await;
         self.all_prs.write().unwrap().insert(
             pull_request.diff_url.clone(),
             PullRequestInfo {

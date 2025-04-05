@@ -5,6 +5,7 @@ use crate::server::server::Server;
 use components::Navbar;
 use views::Home;
 
+mod ai;
 mod components;
 #[cfg(feature = "server")]
 mod github_bot;
