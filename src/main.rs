@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 
 #[cfg(feature = "server")]
 use crate::server::server::Server;
-#[cfg(not(feature = "server"))]
+#[cfg(feature = "desktop")]
 use views::Home;
 
 #[cfg(feature = "server")]

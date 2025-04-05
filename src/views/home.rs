@@ -10,16 +10,22 @@ enum TransitioningDirection {
 #[component]
 pub fn Home() -> Element {
     let mut transitioning = use_signal(|| None);
-    let mut end_id = use_signal(|| 3);
+    let files = use_resource(move || async move {
+        let response = reqwest::get("https://github.com/floneum/floneum/pull/361.diff").await.unwrap();
+        let text = response.text().await.unwrap();
+        GitDiff::from_str(&text).unwrap()
+    })
+        .suspend()?
+        .read_unchecked();
 
     rsx! {
         // max+1, max, max-1, max-2
-        for card in (end_id() - (3 + transitioning().is_some() as usize)..end_id()).rev() {
+        for card in (0..3 + transitioning().is_some() as usize).rev() {
             Card {
                 key: "{card}",
-                class: if let Some(dir) = transitioning() { if dbg!(card) == end_id() {
+                class: if let Some(dir) = transitioning() { if card == 2 + transitioning().is_some() as usize {
                     "in-card"
-                } else if card == end_id() - (3 + transitioning().is_some() as usize) {
+                } else if card == 0 {
                     match dir {
                         TransitioningDirection::Right => "right-card",
                         TransitioningDirection::Left => "left-card",
@@ -27,14 +33,16 @@ pub fn Home() -> Element {
                 } else {
                     "down-card"
                 } } else { "card" },
-                url: "https://github.com/floneum/floneum/pull/361.diff"
+                files: files.clone(),
             }
         }
         div { class: "absolute flex flex-row w-[100vw] h-[100vh]",
             div {
                 class: "w-[50vw] h-[100vh]",
                 onclick: move |_| async move {
-                    end_id += 1;
+                    if transitioning().is_some() {
+                        return;
+                    }
                     transitioning.set(Some(TransitioningDirection::Left));
                     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                     transitioning.set(None);
@@ -43,7 +51,9 @@ pub fn Home() -> Element {
             div {
                 class: "w-[50vw] h-[100vh]",
                 onclick: move |_| async move {
-                    end_id += 1;
+                    if transitioning().is_some() {
+                        return;
+                    }
                     transitioning.set(Some(TransitioningDirection::Right));
                     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                     transitioning.set(None);
@@ -54,15 +64,8 @@ pub fn Home() -> Element {
 }
 
 #[component]
-fn Card(class: String, url: ReadOnlySignal<String>) -> Element {
+fn Card(class: String, files: GitDiff) -> Element {
     const VIDEO: Asset = asset!("/assets/minecraft.webm", AssetOptions::Unknown);
-    let files = use_resource(move || async move {
-        let response = reqwest::get(url()).await.unwrap();
-        let text = response.text().await.unwrap();
-        GitDiff::from_str(&text).unwrap()
-    })
-    .suspend()?
-    .read_unchecked();
 
     rsx! {
         div { class: "w-[100vw] h-[100vh] {class}",
@@ -117,7 +120,7 @@ fn Card(class: String, url: ReadOnlySignal<String>) -> Element {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, PartialEq, Clone)]
 struct GitDiff {
     files: Vec<GitDiffFile>,
 }
@@ -185,14 +188,14 @@ impl FromStr for GitDiff {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, PartialEq, Clone)]
 struct GitDiffFile {
     old_path: String,
     new_path: String,
     changes: Vec<GitDiffChange>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, PartialEq, Clone)]
 struct GitDiffChange {
     context: String,
     old_location: Location,
@@ -200,20 +203,20 @@ struct GitDiffChange {
     contents: Vec<Line>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, PartialEq, Clone)]
 struct Line {
     contents: String,
     status: Status,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, PartialEq)]
+#[derive(serde::Serialize, serde::Deserialize, PartialEq, Clone)]
 enum Status {
     Added,
     Removed,
     Unchanged,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, PartialEq, Clone)]
 struct Location {
     line_number: usize,
     column_number: usize,
