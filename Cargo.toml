@@ -8,7 +8,7 @@ edition = "2021"
 
 [dependencies]
 dioxus = { version = "0.6.0", features = ["router", "fullstack"] }
-axum = { version = "0.8.3", optional = true }
+axum = { version = "0.7", optional = true }
 tokio = { version = "1.44.1", features = ["full"], optional = true }
 
 [features]

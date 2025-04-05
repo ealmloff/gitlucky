@@ -20,19 +20,19 @@ const FAVICON: Asset = asset!("/assets/favicon.ico");
 const MAIN_CSS: Asset = asset!("/assets/styling/main.css");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 
-#[cfg(not(feature = "server"))]
+#[cfg(feature = "server")]
 #[tokio::main]
 async fn main() {
     let addr = dioxus::cli_config::fullstack_address_or_localhost();
     let router = axum::Router::new()
         // Server side render the application, serve static assets, and register server functions
-        .serve_dioxus_application(ServeConfig::new().unwrap(), app)
+        .serve_dioxus_application(ServeConfig::new().unwrap(), App)
         .into_make_service();
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, router).await.unwrap();
 }
 
-#[cfg(feature = "server")]
+#[cfg(not(feature = "server"))]
 fn main() {
     dioxus::launch(App);
 }
