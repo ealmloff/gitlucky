@@ -1,5 +1,5 @@
-use std::{fmt::Display, str::FromStr};
 use dioxus::prelude::*;
+use std::{fmt::Display, str::FromStr};
 
 #[component]
 pub fn Home() -> Element {
@@ -9,10 +9,9 @@ pub fn Home() -> Element {
         )
         .await
         .unwrap();
-    let text = response.text().await.unwrap();
-    GitDiff::from_str(&text).unwrap()
-    })
-    ?;
+        let text = response.text().await.unwrap();
+        GitDiff::from_str(&text).unwrap()
+    })?;
 
     let files = files.read_unchecked();
     let files = files.as_ref().unwrap();
@@ -21,27 +20,49 @@ pub fn Home() -> Element {
         pre {
             for file in &files.files {
                 div {
-                    class: "flex flex-col w-full h-1/2",
+                    class: "flex flex-col w-full h-1/2 font-mono",
                     div {
-                        class: "flex flex-row w-full h-4",
+                        class: "flex flex-row w-full border-t font-bold pl-8 sticky top-0 backdrop-blur-sm bg-[rgba(195,195,195,0.8)]",
                         "{file.old_path} -> {file.new_path}"
                     }
                     div {
                         class: "flex flex-col w-full h-full",
                         for chunk in &file.changes {
                             div {
-                                class: "flex flex-row w-full h-4",
-                                "{chunk.old_location}->{chunk.new_location}"
-                            }
-                            div {
-                                class: "flex flex-row w-full h-4",
-                                "{chunk.context}"
+                                class: "flex flex-row w-full border-b pl-8 sticky top-[25px] backdrop-blur-sm bg-[rgba(195,195,195,0.8)]",
+                                "{chunk.old_location} -> {chunk.new_location} @@ {chunk.context}"
                             }
                             for line in &chunk.contents {
-                                pre {
-                                    class: if line.status == Status::Added { "color-green-200" },
-                                    class: if line.status == Status::Removed { "color-red-200" },
-                                    "{line.contents}"
+                                match line.status {
+                                    Status::Added => rsx! {
+                                        pre {
+                                            class: "bg-green-200",
+                                            span {
+                                                class: "p-2",
+                                                "+"
+                                            }
+                                            "{line.contents}"
+                                        }
+                                    },
+                                    Status::Removed => rsx! {
+                                        pre {
+                                            class: "bg-red-200",
+                                            span {
+                                                class: "p-2",
+                                                "-"
+                                            }
+                                            "{line.contents}"
+                                        }
+                                    },
+                                    Status::Unchanged => rsx! {
+                                        pre {
+                                            span {
+                                                class: "p-2",
+                                                " "
+                                            }
+                                            "{line.contents}"
+                                        }
+                                    },
                                 }
                             }
                         }
@@ -86,16 +107,17 @@ impl FromStr for GitDiff {
                                             new_location,
                                             contents: Vec::new(),
                                         });
+                                    } else {
+                                        panic!(
+                                            "failed to parse 1 {} {}",
+                                            old.trim_matches('-'),
+                                            new.trim_matches('+')
+                                        );
                                     }
-                                    else {
-                                        panic!("failed to parse 1 {} {}", old.trim_matches('-'), new.trim_matches('+'));
-                                    }
-                                }
-                                else {
+                                } else {
                                     panic!("failed to parse 2");
                                 }
-                            }
-                            else {
+                            } else {
                                 panic!("failed to parse {line}");
                             }
                         } else if let Some(line) = line.strip_prefix("+") {
@@ -125,9 +147,7 @@ impl FromStr for GitDiff {
             }
         }
 
-        Ok(Self {
-            files
-        })
+        Ok(Self { files })
     }
 }
 
@@ -167,7 +187,7 @@ struct Location {
 
 impl Display for Location {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "{}:{}", self.line_number, self.column_number)
+        write!(f, "{}:{}", self.line_number, self.column_number)
     }
 }
 
@@ -186,10 +206,13 @@ impl FromStr for Location {
                     })
                 })
                 .map_err(|_| {}),
-            None => s.parse().map(|line_number| Self {
-                line_number,
-                column_number:0 
-            }).map_err(|_| {})
+            None => s
+                .parse()
+                .map(|line_number| Self {
+                    line_number,
+                    column_number: 0,
+                })
+                .map_err(|_| {}),
         }
     }
 }
