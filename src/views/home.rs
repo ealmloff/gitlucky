@@ -1,56 +1,82 @@
 use dioxus::prelude::*;
 use std::{fmt::Display, str::FromStr};
 
+#[derive(Clone, Copy, PartialEq)]
+enum TransitioningDirection {
+    Left,
+    Right,
+}
 
 #[component]
 pub fn Home() -> Element {
-    let mut transitioning = use_signal(|| false);
+    let mut transitioning = use_signal(|| None);
+    let mut end_id = use_signal(|| 3);
+
     rsx! {
-        for card in 0..4 {
+        // max+1, max, max-1, max-2
+        for card in (end_id() - (3 + transitioning().is_some() as usize)..end_id()).rev() {
             Card {
-                class: if transitioning() { if card == 0 { "in-card" } else if card == 3 { "right-card" } else { "down-card" } } else { "card" },
-                onclick: move |_| if card == 3 {
-                    transitioning.set(!transitioning());
-                },
-                show_img: card == 3,
+                key: "{card}",
+                class: if let Some(dir) = transitioning() { if dbg!(card) == end_id() {
+                    "in-card"
+                } else if card == end_id() - (3 + transitioning().is_some() as usize) {
+                    match dir {
+                        TransitioningDirection::Right => "right-card",
+                        TransitioningDirection::Left => "left-card",
+                    }
+                } else {
+                    "down-card"
+                } } else { "card" },
                 url: "https://github.com/floneum/floneum/pull/361.diff"
+            }
+        }
+        div { class: "absolute flex flex-row w-[100vw] h-[100vh]",
+            div {
+                class: "w-[50vw] h-[100vh]",
+                onclick: move |_| async move {
+                    end_id += 1;
+                    transitioning.set(Some(TransitioningDirection::Left));
+                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                    transitioning.set(None);
+                },
+            }
+            div {
+                class: "w-[50vw] h-[100vh]",
+                onclick: move |_| async move {
+                    end_id += 1;
+                    transitioning.set(Some(TransitioningDirection::Right));
+                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                    transitioning.set(None);
+                },
             }
         }
     }
 }
 
 #[component]
-fn Card(class: String, url: ReadOnlySignal<String>, onclick: Callback<(), ()>, show_img: bool) -> Element {
+fn Card(class: String, url: ReadOnlySignal<String>) -> Element {
     const VIDEO: Asset = asset!("/assets/minecraft.webm", AssetOptions::Unknown);
     let files = use_resource(move || async move {
-        let response = reqwest::get(
-            url(),
-        )
-        .await
-        .unwrap();
+        let response = reqwest::get(url()).await.unwrap();
         let text = response.text().await.unwrap();
         GitDiff::from_str(&text).unwrap()
-    }).suspend()?.read_unchecked();
+    })
+    .suspend()?
+    .read_unchecked();
 
     rsx! {
-        div {
-            class: "w-[100vw] h-[100vh] {class}",
+        div { class: "w-[100vw] h-[100vh] {class}",
             div { class: "absolute flex flex-col w-[100vw] h-[100vh] font-mono",
                 video {
                     autoplay: true,
-                    loop: true,
+                    r#loop: true,
                     muted: true,
                     class: "w-[100vw] h-full object-cover",
-                    source {
-                        src: VIDEO,
-                        type: "video/webm",
-                    }
+                    source { src: VIDEO, r#type: "video/webm" }
                 }
             }
-            div {
-                class: "absolute w-[100vw] h-[100vh] font-mono overflow-y-scroll rounded-t-lg",
+            div { class: "absolute w-[100vw] h-[100vh] font-mono overflow-y-scroll rounded-t-lg",
                 div { class: "flex flex-col backdrop-blur-xs bg-[rgba(255,255,255,0.5)]",
-                    onclick: move |_| onclick(()),
                     for file in &files.files {
                         div { class: "flex flex-row w-[100vw] border-t font-bold pl-8 sticky h-[25px] top-0 overflow-ellipsis overflow-clip bg-[rgba(195,195,195)]",
                             "{file.old_path} -> {file.new_path}"
@@ -75,8 +101,7 @@ fn Card(class: String, url: ReadOnlySignal<String>, onclick: Callback<(), ()>, s
                                             }
                                         },
                                         Status::Unchanged => rsx! {
-                                            pre {
-                                                class: "whitespace-pre truncate",
+                                            pre { class: "whitespace-pre truncate",
                                                 span { class: "p-2", " " }
                                                 "{line.contents}"
                                             }
