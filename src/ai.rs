@@ -53,6 +53,6 @@ async fn generate_pull_request_audio(pull_request: PullRequest) {
     println!("Generating text for PR: {}", pull_request.diff_url);
     let text_response = get_response_from_gemini_api(&pull_request.diff_url).await;
     println!("Generating audio for PR: {}", pull_request.diff_url);
-    let file_path = format!("audio/{}.mp3", pull_request.diff_url);
+    let file_path = format!("{}.mp3", pull_request.diff_url);
     text_to_speech(&text_response, &file_path).await;
 }

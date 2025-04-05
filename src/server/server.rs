@@ -30,7 +30,7 @@ pub struct PullRequest {
 
 impl PullRequest {
     pub fn get_audio_path(&self) -> String {
-        format!("audio/{}.mp3", self.diff_url)
+        format!("{}.mp3", self.diff_url)
     }
 }
 
