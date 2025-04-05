@@ -1,5 +1,6 @@
 use axum::{routing::post, Json, Router};
 
+#[cfg(not(feature = "server"))]
 use dioxus::prelude::{DioxusRouterExt, ServeConfig};
 use octocrab::models::events::payload::PullRequestEventPayload;
 use std::{
@@ -8,6 +9,7 @@ use std::{
     time::Duration,
 };
 
+#[cfg(not(feature = "server"))]
 use crate::App;
 
 #[derive(Debug, Clone)]
@@ -92,18 +94,6 @@ impl Server {
             all_prs: Arc::new(RwLock::new(HashMap::new())),
         };
 
-        #[cfg(not(feature = "dioxus"))]
-        {
-            let s_c = server.clone();
-            let _ = router
-                .serve_dioxus_application(ServeConfig::builder(), App)
-                .route(
-                    "/",
-                    post(move |payload: Json<PullRequestEventPayload>| async move {
-                        s_c.webhook_handler(payload).await;
-                    }),
-                );
-        }
         server
     }
 

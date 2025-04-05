@@ -1,7 +1,9 @@
 use dioxus::prelude::*;
 
+#[cfg(not(feature = "server"))]
 const HEADER_SVG: Asset = asset!("/assets/header.svg");
 
+#[cfg(not(feature = "server"))]
 #[component]
 pub fn Hero() -> Element {
     rsx! {

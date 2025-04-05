@@ -2,7 +2,9 @@ use dioxus::prelude::*;
 
 #[cfg(feature = "server")]
 use crate::server::server::Server;
+#[cfg(not(feature = "server"))]
 use components::Navbar;
+#[cfg(not(feature = "server"))]
 use views::Home;
 
 mod ai;
@@ -12,6 +14,7 @@ mod github_bot;
 mod server;
 mod views;
 
+#[cfg(not(feature = "server"))]
 #[derive(Debug, Clone, Routable, PartialEq)]
 #[rustfmt::skip]
 enum Route {
@@ -20,7 +23,9 @@ enum Route {
     Home {},
 }
 
+#[cfg(not(feature = "server"))]
 const FAVICON: Asset = asset!("/assets/favicon.ico");
+#[cfg(not(feature = "server"))]
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 
 #[cfg(feature = "server")]
@@ -37,6 +42,7 @@ fn main() {
     dioxus::launch(App);
 }
 
+#[cfg(not(feature = "server"))]
 #[component]
 fn App() -> Element {
     // Build cool things 🦧🦧🦧
