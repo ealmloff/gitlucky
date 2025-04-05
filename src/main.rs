@@ -1,9 +1,12 @@
 use dioxus::prelude::*;
 
+use crate::server::server::Server;
 use components::Navbar;
 use views::{Blog, Home};
 
 mod components;
+mod github_bot;
+mod server;
 mod views;
 
 #[derive(Debug, Clone, Routable, PartialEq)]
@@ -23,13 +26,10 @@ const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 #[cfg(feature = "server")]
 #[tokio::main]
 async fn main() {
-    let addr = dioxus::cli_config::fullstack_address_or_localhost();
-    let router = axum::Router::new()
-        // Server side render the application, serve static assets, and register server functions
-        .serve_dioxus_application(ServeConfig::builder(), App)
-        .into_make_service();
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, router).await.unwrap();
+    use dioxus::logger::tracing::Level;
+
+    let dioxus_logger = dioxus::logger::init(Level::TRACE);
+    let server = Server::new().await;
 }
 
 #[cfg(not(feature = "server"))]

@@ -10,9 +10,11 @@ edition = "2021"
 dioxus = { version = "0.6.0", features = ["router", "fullstack"] }
 axum = { version = "0.7", optional = true }
 tokio = { version = "1.44.1", features = ["full"], optional = true }
+octocrab = "0.44.0"
+serde = "1.0.219"
 
 [features]
-default = []
+default = ["server"]
 mobile = ["dioxus/mobile"]
 server = ["dioxus/server", "dep:axum", "dep:tokio"]
 
