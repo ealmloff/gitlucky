@@ -95,7 +95,20 @@ fn Card(class: String, data: PRData) -> Element {
                     source { src: VIDEO, r#type: "video/webm" }
                 }
             }
-            div { class: "absolute w-[80vw] h-[80vh] font-mono overflow-y-scroll border rounded-xl",
+            div { class: "absolute w-[80vw] h-[80vh] font-mono border rounded-xl overflow-y-scroll ",
+                div { class: "flex flex-row justify-between align-middle items-center w-[80vw] h-[50px] pl-4 sticky top-0 overflow-ellipsis overflow-clip ml-[-1px] mt-[-1px] border bg-[#6581c8] rounded-t-xl",
+                    span {
+                        class: "font-bold w-[60vw] overflow-ellipsis overflow-clip",
+                        "{title}"
+                    }
+                    div {
+                        class: "flex flex-row items-center",
+                        "{user}"
+                        img { class: "rounded-full w-[40px] h-[40px] mx-4",
+                            src: "{user_avatar}"
+                        }
+                    }
+                }
                 div { class: "flex flex-col backdrop-blur-xs bg-[rgba(255,255,255,0.5)]",
                     for file in &files.files {
                         div { class: "flex flex-row w-[80vw] font-bold pl-8 sticky h-[25px] top-0 overflow-ellipsis overflow-clip bg-[rgba(195,195,195)]",
