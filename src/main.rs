@@ -31,6 +31,7 @@ const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 async fn main() {
     use dioxus::logger::tracing::Level;
 
+    println!("Starting server...");
     // let dioxus_logger = dioxus::logger::init(Level::TRACE);
     let server = Server::new().await;
 }

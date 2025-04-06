@@ -1,18 +1,27 @@
-use axum::{routing::post, Json, Router};
+use axum::{
+    routing::{get_service, post},
+    Json, Router,
+};
 
 #[cfg(not(feature = "server"))]
 use dioxus::prelude::{DioxusRouterExt, ServeConfig};
-use octocrab::models::events::payload::PullRequestEventPayload;
+use octocrab::models::{
+    events::payload::{PullRequestEventAction, PullRequestEventPayload},
+    pulls::PullRequestAction,
+};
+use rand::Rng;
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     sync::{Arc, RwLock},
     time::Duration,
 };
 
+use crate::ai;
 #[cfg(not(feature = "server"))]
 use crate::App;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PullRequest {
     pub diff_url: String,
     pub title: String,
@@ -30,7 +39,7 @@ pub struct PullRequest {
 
 impl PullRequest {
     pub fn get_audio_path(&self) -> String {
-        format!("{}.mp3", self.diff_url)
+        format!("data/{}.mp3", self.diff_url)
     }
 }
 
@@ -43,30 +52,40 @@ pub struct PullRequestInfo {
 
 impl PullRequest {
     async fn new_from_payload(payload: PullRequestEventPayload) -> Self {
+        if payload.action != PullRequestEventAction::Opened
+            || payload.action != PullRequestEventAction::Reopened
+        {
+            // break but like not for now
+            println!("Not a valid action: {:?}", payload.action);
+        }
+        //println!("payload: {:?}", payload);
         let diff_url = payload.pull_request.diff_url.clone().unwrap();
         let title = payload.pull_request.title.clone().unwrap();
         let additions = payload.pull_request.additions.unwrap();
         let deletions = payload.pull_request.deletions.unwrap();
         let changed_files = payload.pull_request.changed_files.unwrap();
         let author = payload.pull_request.user.unwrap().login.clone();
-        let repo_name = payload.pull_request.repo.unwrap();
+        println!("Diff url: {}", diff_url);
+        let repo_name = diff_url.as_str().split('/').nth(4).unwrap().to_string();
         let key = payload.pull_request.head.sha.clone();
         let repo_owner = payload.pull_request.base.repo.unwrap().owner.unwrap().login;
 
-        Self {
+        let pr = Self {
             diff_url: diff_url.to_string(),
             title: title,
             additions: additions as usize,
             deletions: deletions as usize,
             changed_files: changed_files as usize,
             author: author,
-            repo_name: repo_name.name,
+            repo_name: repo_name,
             key: key,
             pr_number: payload.pull_request.number,
             branch_to_merge: payload.pull_request.head.label.unwrap(),
             branch_to_merge_into: payload.pull_request.base.label.unwrap(),
             repo_owner,
-        }
+        };
+
+        pr
     }
 }
 
@@ -79,14 +98,34 @@ impl Server {
     pub async fn new() -> Self {
         println!("Starting server...");
         let addr = "0.0.0.0:8080";
-        let mut router = Router::new();
 
         let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-        axum::serve(listener, router.clone()).await.unwrap();
         let server = Self {
             all_prs: Arc::new(RwLock::new(HashMap::new())),
         };
 
+        let s_c = server.clone();
+        let mut router = Router::new().route(
+            "/", // The github webhook
+            post(move |payload: Json<PullRequestEventPayload>| async move {
+                s_c.webhook_handler(payload).await;
+            }),
+        );
+        let s_c = server.clone();
+        router = router.route(
+            "/pr",
+            axum::routing::get(move || async move { Json(s_c.get_random_pr()) }),
+        );
+        let s_c = server.clone();
+        router = router.route(
+            "/vote",
+            post(move |payload: Json<(String, Direction)>| async move {
+                let (diff_url, direction) = payload.0;
+                s_c.clone().vote_on_pr(diff_url, direction);
+            }),
+        );
+
+        axum::serve(listener, router).await.unwrap();
         server
     }
 
@@ -138,8 +177,21 @@ impl Server {
             }
         }
     }
+
+    fn get_random_pr(&self) -> PullRequest {
+        let all_prs = self.all_prs.read().unwrap();
+        let mut rng = rand::thread_rng();
+        let random_index = rng.random_range(0..all_prs.len());
+        all_prs
+            .values()
+            .nth(random_index)
+            .unwrap()
+            .pull_request
+            .clone()
+    }
 }
 
+#[derive(Serialize, Deserialize)]
 pub enum Direction {
     Left,
     Right,

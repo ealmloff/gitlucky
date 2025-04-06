@@ -20,8 +20,9 @@ async fn get_response_from_gemini_api(prompt: &str) -> String {
                 .with_api_key(get_gemini_api_key()),
         )
         .build();
+    println!("API KEY: {}", get_gemini_api_key());
     const SYS_PROMPT: &str = "This is a PR for a new feature, generate a response fit for short form content like tiktok that could go over a minecraft parkour video.";
-    let mut generate_character = llm.chat().with_system_prompt(SYS_PROMPT);
+    let mut generate_character = llm.chat(); //.with_system_prompt(SYS_PROMPT);
     let res = generate_character(prompt).await.unwrap();
 
     res
@@ -49,10 +50,11 @@ async fn text_to_speech(text: &str, store_path: &str) {
     std::fs::write(store_path, bytes).unwrap();
 }
 
-async fn generate_pull_request_audio(pull_request: PullRequest) {
+pub async fn generate_pull_request_audio(pull_request: PullRequest) {
     println!("Generating text for PR: {}", pull_request.diff_url);
     let text_response = get_response_from_gemini_api(&pull_request.diff_url).await;
     println!("Generating audio for PR: {}", pull_request.diff_url);
-    let file_path = format!("{}.mp3", pull_request.diff_url);
+    let file_path = format!("data/{}.mp3", pull_request.diff_url);
+    println!("Saving audio to: {}", file_path);
     text_to_speech(&text_response, &file_path).await;
 }

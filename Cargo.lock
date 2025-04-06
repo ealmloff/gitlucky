@@ -2704,6 +2704,7 @@ dependencies = [
  "ndk-context",
  "ndk-sys",
  "octocrab",
+ "openssl",
  "rand 0.9.0",
  "reqwest 0.12.15",
  "serde",
@@ -3672,8 +3673,7 @@ dependencies = [
 [[package]]
 name = "kalosm"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a7e688c99f19a48d5697f0d374327d94d9ae672813abcd86302c5a3de132a2e"
+source = "git+https://github.com/floneum/floneum#52967ae5dcd161e5cbe9507282b52df0946706f9"
 dependencies = [
  "comfy-table",
  "futures-util",
@@ -3688,8 +3688,7 @@ dependencies = [
 [[package]]
 name = "kalosm-common"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de2ac5de83e059366d74ab199a7b25a181c05109e4752186569ba1cf1ea8e68d"
+source = "git+https://github.com/floneum/floneum#52967ae5dcd161e5cbe9507282b52df0946706f9"
 dependencies = [
  "candle-core",
  "candle-nn",
@@ -3706,8 +3705,7 @@ dependencies = [
 [[package]]
 name = "kalosm-language"
 version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50d21c030794701dc507542044f7ceb57b9db6a797312c7f0118b7c93555cecb"
+source = "git+https://github.com/floneum/floneum#52967ae5dcd161e5cbe9507282b52df0946706f9"
 dependencies = [
  "anyhow",
  "arroy",
@@ -3747,8 +3745,7 @@ dependencies = [
 [[package]]
 name = "kalosm-language-model"
 version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f63bb2f31b947cb4b2fe285d91e51de1e2d41e0312c4fb0dae7da94374756fb"
+source = "git+https://github.com/floneum/floneum#52967ae5dcd161e5cbe9507282b52df0946706f9"
 dependencies = [
  "anyhow",
  "async-lock",
@@ -3770,8 +3767,7 @@ dependencies = [
 [[package]]
 name = "kalosm-llama"
 version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e7dcfe602184b5455241eceaacf152060f9795e38fdc3c6dd3a4eeed09a3c3b"
+source = "git+https://github.com/floneum/floneum#52967ae5dcd161e5cbe9507282b52df0946706f9"
 dependencies = [
  "candle-core",
  "candle-nn",
@@ -3798,17 +3794,15 @@ dependencies = [
 [[package]]
 name = "kalosm-model-types"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b6ea4f7cc50877612c89f3c0f7b5286d08724562234ce2329f6c53415436e74"
+source = "git+https://github.com/floneum/floneum#52967ae5dcd161e5cbe9507282b52df0946706f9"
 dependencies = [
  "indicatif",
 ]
 
 [[package]]
 name = "kalosm-parse-macro"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe55d47e86fb552391f1f65a7977260559a892b0f5d5cc0325153fc4ba488ec3"
+version = "0.4.0"
+source = "git+https://github.com/floneum/floneum#52967ae5dcd161e5cbe9507282b52df0946706f9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3817,9 +3811,8 @@ dependencies = [
 
 [[package]]
 name = "kalosm-sample"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4a80f6c025f7911cd9cff799f80b591b1115497c21edb797db043302751bb3e"
+version = "0.4.0"
+source = "git+https://github.com/floneum/floneum#52967ae5dcd161e5cbe9507282b52df0946706f9"
 dependencies = [
  "kalosm-parse-macro",
  "regex-automata",
@@ -3828,8 +3821,7 @@ dependencies = [
 [[package]]
 name = "kalosm-streams"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f7ff10dbf8960f211ee1ae532196edca9479b21ef1490c5bbd1b300e15398a64"
+source = "git+https://github.com/floneum/floneum#52967ae5dcd161e5cbe9507282b52df0946706f9"
 dependencies = [
  "futures-channel",
  "futures-util",
@@ -4891,6 +4883,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d05e27ee213611ffe7d6348b942e8f942b37114c00cc03cec254295a4a17852e"
 
 [[package]]
+name = "openssl-src"
+version = "300.4.2+3.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "168ce4e058f975fe43e89d9ccf78ca668601887ae736090aacc23ae353c298e2"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "openssl-sys"
 version = "0.9.106"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4898,6 +4899,7 @@ checksum = "8bb61ea9811cc39e3c2069f40b8b8e2e70d8569b361f879786cc7ed48b777cdd"
 dependencies = [
  "cc",
  "libc",
+ "openssl-src",
  "pkg-config",
  "vcpkg",
 ]
@@ -5646,8 +5648,7 @@ dependencies = [
 [[package]]
 name = "rbert"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "737d017c82188d8aac84ccda22a767127c7363461078f831c09e2aa79ee6d7be"
+source = "git+https://github.com/floneum/floneum#52967ae5dcd161e5cbe9507282b52df0946706f9"
 dependencies = [
  "candle-core",
  "candle-nn",
