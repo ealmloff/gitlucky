@@ -13,30 +13,50 @@ enum TransitioningDirection {
 #[component]
 pub fn Home() -> Element {
     let mut transitioning = use_signal(|| None);
-    let data_source = use_resource(move || async move {
-        let client = reqwest::Client::new();
-        let info = client
-            .get("https://gitlucky.fly.dev/pr")
-            .send()
-            .await
-            .unwrap()
-            .text()
-            .await
-            .unwrap();
-        println!("info: {}", info);
-        let info: PullRequest = serde_json::from_str(&info).unwrap();
-        let response = reqwest::get(info.diff_url).await.unwrap();
-        let text = response.text().await.unwrap();
-        let diff = GitDiff::from_str(&text).unwrap();
-        PRData {
-            repo: info.repo_name,
-            pull_request_title: info.branch_to_merge,
-            user: info.author,
-            user_avatar: "https://avatars.githubusercontent.com/u/123456?v=4".to_string(),
-            diff,
+    let mut data_source = use_signal(|| [None, None]);
+    use_future(move || async move {
+        for dst_i in 0..2 {
+            let client = reqwest::Client::new();
+            let info: PullRequest = loop {
+                match client
+                    .get("https://gitlucky.fly.dev/pr")
+                    .send()
+                    .await
+                    .unwrap()
+                    .json::<PullRequest>()
+                    .await
+                {
+                    Ok(result) => {
+                        break result;
+                    }
+                    Err(err) => {
+                        tracing::error!("Error fetching PR: {:?}", err);
+                    }
+                }
+                tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+            };
+            let response = reqwest::get(&info.diff_url).await.unwrap();
+            let text = response.text().await.unwrap();
+            let diff = GitDiff::from_str(&text).unwrap();
+            data_source.write()[dst_i] = Some(PRData {
+                source_url: info.diff_url,
+                repo: info.repo_name,
+                pull_request_title: info.branch_to_merge,
+                user: info.author,
+                user_avatar: info.profile_pic_url,
+                diff,
+            });
         }
     });
-    let data = data_source.suspend()?.read_unchecked();
+    let mut count = use_signal(|| 0);
+    let [Some(first), Some(second)] = &*data_source.read_unchecked() else {
+        return rsx! {"really"};
+    };
+    let [current, next] = if count() % 2 == 0 {
+        [first, second]
+    } else {
+        [second, first]
+    };
 
     rsx! {
         div { class: "absolute flex flex-col w-[100vw] h-[100vh] max-h-[100vh]",
@@ -54,14 +74,51 @@ pub fn Home() -> Element {
                     direction = Direction::Right;
                     TransitioningDirection::Right
                 }));
-                let read = data_source.read_unchecked();
-                let diff_url = &read.as_ref().unwrap().diff;
+                let i = (count() + 1) % 2;
+                spawn(async move {
+                    let client = reqwest::Client::new();
+                    let info: PullRequest = loop {
+                        match client
+                            .get("https://gitlucky.fly.dev/pr")
+                            .send()
+                            .await
+                            .unwrap()
+                            .json::<PullRequest>()
+                            .await
+                        {
+                            Ok(result) => {
+                                break result;
+                            }
+                            Err(err) => {
+                                tracing::error!("Error fetching PR: {:?}", err);
+                            }
+                        }
+                        tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+                    };
+                    let response = reqwest::get(&info.diff_url).await.unwrap();
+                    let text = response.text().await.unwrap();
+                    let diff = GitDiff::from_str(&text).unwrap();
+                    data_source.write()[i] = Some(PRData {
+                        source_url: info.diff_url,
+                        repo: info.repo_name,
+                        pull_request_title: info.branch_to_merge,
+                        user: info.author,
+                        user_avatar: info.profile_pic_url,
+                        diff,
+                    });
+                    count += 1;
+                });
+                let diff_url = {
+                    let read = data_source.read_unchecked();
+                    &read[0].as_ref().unwrap().source_url.to_string()
+                };
                 let client = reqwest::Client::new();
                 client.post("https://gitlucky.fly.dev/vote")
                     .json(&(diff_url, direction))
-                        .send()
-                        .await
-                        .unwrap();
+                    .send()
+                    .await
+                    .unwrap();
+
                 tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                 transitioning.set(None);
             },
@@ -75,25 +132,25 @@ pub fn Home() -> Element {
                     "accept ➡️"
                 }
             }
-            div {
-                class: "ml-[10vw] mt-[10vh]",
-                for card in (0..3 + transitioning().is_some() as usize).rev() {
-                    Card {
-                        key: "{card}",
-                        class: if let Some(dir) = transitioning() { if card == 2 + transitioning().is_some() as usize {
-                            "in-card"
-                        } else if card == 0 {
-                            match dir {
-                                TransitioningDirection::Right => "right-card",
-                                TransitioningDirection::Left => "left-card",
-                            }
-                        } else {
-                            "down-card"
-                        } } else { "card" },
-                        data: data.clone(),
-                    }
-                }
-            }
+            // div {
+            //     class: "ml-[10vw] mt-[10vh]",
+            //     for card in (0..3 + transitioning().is_some() as usize).rev() {
+            //         Card {
+            //             key: "{card}",
+            //             class: if let Some(dir) = transitioning() { if card == 2 + transitioning().is_some() as usize {
+            //                 "in-card"
+            //             } else if card == 0 {
+            //                 match dir {
+            //                     TransitioningDirection::Right => "right-card",
+            //                     TransitioningDirection::Left => "left-card",
+            //                 }
+            //             } else {
+            //                 "down-card"
+            //             } } else { "card" },
+            //             data: if card == 0 { current.clone() } else { next.clone() },
+            //         }
+            //     }
+            // }
         }
     }
 }
@@ -174,6 +231,7 @@ fn Card(class: String, data: PRData) -> Element {
 
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Clone)]
 struct PRData {
+    source_url: String,
     repo: String,
     pull_request_title: String,
     user: String,
