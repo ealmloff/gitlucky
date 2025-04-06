@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "server")]
 use crate::server::server::Server;
@@ -11,6 +12,29 @@ mod ai;
 mod github_bot;
 mod server;
 mod views;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PullRequest {
+    pub diff_url: String,
+    pub title: String,
+    pub additions: usize,
+    pub deletions: usize,
+    pub changed_files: usize,
+    pub author: String,
+    pub repo_name: String,
+    pub key: Option<String>,
+    pub branch_to_merge: String,
+    pub branch_to_merge_into: String,
+    pub pr_number: u64,
+    pub repo_owner: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum Direction {
+    Left,
+    Right,
+}
+
 
 #[cfg(not(feature = "server"))]
 #[derive(Debug, Clone, Routable, PartialEq)]

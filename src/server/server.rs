@@ -17,25 +17,9 @@ use std::{
     time::Duration,
 };
 
-use crate::ai;
+use crate::{ai, Direction, PullRequest};
 #[cfg(not(feature = "server"))]
 use crate::App;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PullRequest {
-    pub diff_url: String,
-    pub title: String,
-    pub additions: usize,
-    pub deletions: usize,
-    pub changed_files: usize,
-    pub author: String,
-    pub repo_name: String,
-    pub key: Option<String>,
-    pub branch_to_merge: String,
-    pub branch_to_merge_into: String,
-    pub pr_number: u64,
-    pub repo_owner: String,
-}
 
 impl PullRequest {
     pub fn get_audio_path(&self) -> String {
@@ -195,10 +179,4 @@ impl Server {
         pr.key = None;
         pr
     }
-}
-
-#[derive(Serialize, Deserialize)]
-pub enum Direction {
-    Left,
-    Right,
 }

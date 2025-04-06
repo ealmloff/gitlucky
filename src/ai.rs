@@ -5,7 +5,7 @@ use elevenlabs_api::{
 use kalosm::language::{ChatModelExt, OpenAICompatibleChatModel, OpenAICompatibleClient};
 use std::env;
 
-use crate::server::server::PullRequest;
+use crate::PullRequest;
 
 fn get_gemini_api_key() -> String {
     env::var("GEMINI_API_KEY").expect("GEMINI_API_KEY must be set")
