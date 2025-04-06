@@ -2,12 +2,11 @@ use dioxus::prelude::*;
 
 #[cfg(feature = "server")]
 use crate::server::server::Server;
-#[cfg(feature = "desktop")]
+#[cfg(not(feature = "server"))]
 use views::Home;
 
 #[cfg(feature = "server")]
 mod ai;
-mod components;
 #[cfg(feature = "server")]
 mod github_bot;
 mod server;

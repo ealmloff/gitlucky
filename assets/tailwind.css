@@ -10,6 +10,7 @@
     --spacing: 0.25rem;
     --font-weight-bold: 700;
     --radius-lg: 0.5rem;
+    --radius-xl: 0.75rem;
     --blur-xs: 4px;
     --default-font-family: var(--font-sans);
     --default-mono-font-family: var(--font-mono);
@@ -179,6 +180,12 @@
   .top-\[25px\] {
     top: 25px;
   }
+  .mt-\[10vh\] {
+    margin-top: 10vh;
+  }
+  .ml-\[10vw\] {
+    margin-left: 10vw;
+  }
   .contents {
     display: contents;
   }
@@ -188,14 +195,23 @@
   .h-\[25px\] {
     height: 25px;
   }
+  .h-\[80vh\] {
+    height: 80vh;
+  }
   .h-\[100vh\] {
     height: 100vh;
   }
   .h-full {
     height: 100%;
   }
+  .max-h-\[100vh\] {
+    max-height: 100vh;
+  }
   .w-\[50vw\] {
     width: 50vw;
+  }
+  .w-\[80vw\] {
+    width: 80vw;
   }
   .w-\[100vw\] {
     width: 100vw;
@@ -220,9 +236,16 @@
   .overflow-y-scroll {
     overflow-y: scroll;
   }
+  .rounded-xl {
+    border-radius: var(--radius-xl);
+  }
   .rounded-t-lg {
     border-top-left-radius: var(--radius-lg);
     border-top-right-radius: var(--radius-lg);
+  }
+  .border {
+    border-style: var(--tw-border-style);
+    border-width: 1px;
   }
   .border-t {
     border-top-style: var(--tw-border-style);
@@ -250,8 +273,17 @@
   .p-2 {
     padding: calc(var(--spacing) * 2);
   }
+  .p-8 {
+    padding: calc(var(--spacing) * 8);
+  }
   .pl-8 {
     padding-left: calc(var(--spacing) * 8);
+  }
+  .text-left {
+    text-align: left;
+  }
+  .text-right {
+    text-align: right;
   }
   .font-mono {
     font-family: var(--font-mono);
@@ -276,25 +308,25 @@
   }
 }
 .card {
-  margin-bottom: calc(10px - 100vh);
+  margin-bottom: calc(10px - 80vh);
 }
 .down-card {
-  margin-bottom: calc(10px - 100vh);
+  margin-bottom: calc(10px - 80vh);
   animation-name: card-down;
   animation-duration: 1s;
 }
 .right-card {
-  margin-bottom: calc(10px - 100vh);
+  margin-bottom: calc(10px - 80vh);
   animation-name: card-right;
   animation-duration: 1s;
 }
 .left-card {
-  margin-bottom: calc(10px - 100vh);
+  margin-bottom: calc(10px - 80vh);
   animation-name: card-left;
   animation-duration: 1s;
 }
 .in-card {
-  margin-bottom: calc(-100vh);
+  margin-bottom: calc(-80vh);
   animation-name: card-in;
   animation-duration: 1s;
 }

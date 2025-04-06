@@ -1,25 +1,25 @@
 @import "tailwindcss";
 
 .card {
-  margin-bottom: calc(10px - 100vh);
+  margin-bottom: calc(10px - 80vh);
 }
 .down-card {
-  margin-bottom: calc(10px - 100vh);
+  margin-bottom: calc(10px - 80vh);
   animation-name: card-down;
   animation-duration: 1s;
 }
 .right-card {
-  margin-bottom: calc(10px - 100vh);
+  margin-bottom: calc(10px - 80vh);
   animation-name: card-right;
   animation-duration: 1s;
 }
 .left-card {
-  margin-bottom: calc(10px - 100vh);
+  margin-bottom: calc(10px - 80vh);
   animation-name: card-left;
   animation-duration: 1s;
 }
 .in-card {
-  margin-bottom: calc(-100vh);
+  margin-bottom: calc(-80vh);
   animation-name: card-in;
   animation-duration: 1s;
 }
