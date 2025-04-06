@@ -7,12 +7,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-<<<<<<< Updated upstream
-dioxus = { git = "https://github.com/ealmloff/dioxus", branch = "fix-key-validation", features = ["router"] }
-=======
+dioxus = { git = "https://github.com/ealmloff/dioxus", branch = "fix-key-validation", features = [
+    "router",
+] }
 openssl = { version = "0.10", features = ["vendored"] }
-dioxus = { version = "0.6.0", features = ["router"] }
->>>>>>> Stashed changes
 axum = { version = "0.7", optional = true }
 tokio = { version = "1.44.1", features = ["full"] }
 octocrab = { version = "0.44.0", optional = true }

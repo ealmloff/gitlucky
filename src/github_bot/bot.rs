@@ -15,7 +15,10 @@ pub async fn merge(potential_merge: PullRequestInfo) {
     let repo_owner = pull_request.repo_owner.clone();
     let repo_name = pull_request.repo_name.clone();
 
-    if let Ok(octocrab) = octocrab::Octocrab::builder().personal_token(token).build() {
+    if let Ok(octocrab) = octocrab::Octocrab::builder()
+        .personal_token(token.unwrap())
+        .build()
+    {
         let _ = octocrab
             .repos(repo_owner, repo_name)
             .merge(&branch_to_merge, branch_to_merge_into)
@@ -38,7 +41,7 @@ pub async fn deny_merge(potential_merge: PullRequestInfo) {
     let repo_name = potential_merge.pull_request.repo_name.clone();
 
     let octocrab = octocrab::Octocrab::builder()
-        .personal_token(token)
+        .personal_token(token.unwrap())
         .build()
         .unwrap();
 

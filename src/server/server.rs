@@ -30,7 +30,7 @@ pub struct PullRequest {
     pub changed_files: usize,
     pub author: String,
     pub repo_name: String,
-    pub key: String,
+    pub key: Option<String>,
     pub branch_to_merge: String,
     pub branch_to_merge_into: String,
     pub pr_number: u64,
@@ -78,7 +78,7 @@ impl PullRequest {
             changed_files: changed_files as usize,
             author: author,
             repo_name: repo_name,
-            key: key,
+            key: Some(key),
             pr_number: payload.pull_request.number,
             branch_to_merge: payload.pull_request.head.label.unwrap(),
             branch_to_merge_into: payload.pull_request.base.label.unwrap(),
@@ -178,16 +178,20 @@ impl Server {
         }
     }
 
+    /// Get a random pull request from the list of all pull requests
+    /// Sets the key to none so that we don't just publish api keys to the world
     fn get_random_pr(&self) -> PullRequest {
         let all_prs = self.all_prs.read().unwrap();
         let mut rng = rand::thread_rng();
         let random_index = rng.random_range(0..all_prs.len());
-        all_prs
+        let mut pr = all_prs
             .values()
             .nth(random_index)
             .unwrap()
             .pull_request
-            .clone()
+            .clone();
+        pr.key = None;
+        pr
     }
 }
 
