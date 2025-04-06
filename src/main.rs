@@ -27,6 +27,7 @@ pub struct PullRequest {
     pub branch_to_merge_into: String,
     pub pr_number: u64,
     pub repo_owner: String,
+    pub profile_pic_url: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -34,7 +35,6 @@ pub enum Direction {
     Left,
     Right,
 }
-
 
 #[cfg(not(feature = "server"))]
 #[derive(Debug, Clone, Routable, PartialEq)]

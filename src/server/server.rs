@@ -17,9 +17,9 @@ use std::{
     time::Duration,
 };
 
-use crate::{ai, Direction, PullRequest};
 #[cfg(not(feature = "server"))]
 use crate::App;
+use crate::{ai, Direction, PullRequest};
 
 impl PullRequest {
     pub fn get_audio_path(&self) -> String {
@@ -48,11 +48,27 @@ impl PullRequest {
         let additions = payload.pull_request.additions.unwrap();
         let deletions = payload.pull_request.deletions.unwrap();
         let changed_files = payload.pull_request.changed_files.unwrap();
-        let author = payload.pull_request.user.unwrap().login.clone();
+        let author = payload.pull_request.user.as_ref().unwrap().login.clone();
         println!("Diff url: {}", diff_url);
         let repo_name = diff_url.as_str().split('/').nth(4).unwrap().to_string();
         let key = payload.pull_request.head.sha.clone();
-        let repo_owner = payload.pull_request.base.repo.unwrap().owner.unwrap().login;
+        let repo_owner = &payload
+            .pull_request
+            .base
+            .repo
+            .as_ref()
+            .unwrap()
+            .owner
+            .as_ref()
+            .unwrap()
+            .login;
+        let profile_pic_url = payload
+            .pull_request
+            .user
+            .as_ref()
+            .unwrap()
+            .avatar_url
+            .to_string();
 
         let pr = Self {
             diff_url: diff_url.to_string(),
@@ -66,7 +82,8 @@ impl PullRequest {
             pr_number: payload.pull_request.number,
             branch_to_merge: payload.pull_request.head.label.unwrap(),
             branch_to_merge_into: payload.pull_request.base.label.unwrap(),
-            repo_owner,
+            repo_owner: repo_owner.to_string(),
+            profile_pic_url,
         };
 
         pr
