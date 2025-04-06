@@ -1,8 +1,8 @@
 use crate::dioxus_elements::geometry::ClientSpace;
 use dioxus::prelude::*;
 use euclid::Point2D;
-use web_sys::RequestMode;
 use std::{fmt::Display, str::FromStr};
+use web_sys::RequestMode;
 
 use crate::Direction;
 use crate::PullRequest;
@@ -24,12 +24,13 @@ async fn get_pr() -> PullRequest {
     //     profile_pic_url: "https://avatars.githubusercontent.com/u/1023100?v=4".to_string(),
     // };
     loop {
-        match gloo_net::http::Request::get("https://corsproxy.io/?url=https://gitlucky.fly.dev/pr")
-            .send()
+        let result = reqwest::get("https://corsproxy.io/?url=https://gitlucky.fly.dev/pr")
             .await
-        {
+            .unwrap()
+            .json::<PullRequest>()
+            .await;
+        match result {
             Ok(result) => {
-                let result = result.json::<PullRequest>().await.unwrap();
                 tracing::info!("Fetched PR: {:?}", result);
                 return result;
             }
@@ -37,7 +38,10 @@ async fn get_pr() -> PullRequest {
                 tracing::error!("Error fetching PR: {:?}", err);
             }
         }
+        #[cfg(target_arch = "wasm32")]
         gloo_timers::future::sleep(std::time::Duration::from_secs(10)).await;
+        #[cfg(not(target_arch = "wasm32"))]
+        tokio::time::sleep(std::time::Duration::from_secs(10)).await;
     }
 }
 
@@ -54,8 +58,7 @@ pub fn Home() -> Element {
     use_future(move || async move {
         for dst_i in 0..2 {
             let info: PullRequest = get_pr().await;
-            let response = gloo_net::http::Request::get(&format!("https://corsproxy.io/?url={}", info.diff_url))
-                .send()
+            let response = reqwest::get(&format!("https://corsproxy.io/?url={}", info.diff_url))
                 .await
                 .unwrap();
             let text = response.text().await.unwrap();
@@ -89,8 +92,7 @@ pub fn Home() -> Element {
         let i = (count() + 1) % 2;
         spawn(async move {
             let info: PullRequest = get_pr().await;
-            let response = gloo_net::http::Request::get(&format!("https://corsproxy.io/?url={}", info.diff_url))
-                .send()
+            let response = reqwest::get(&format!("https://corsproxy.io/?url={}", info.diff_url))
                 .await
                 .unwrap();
             let text = response.text().await.unwrap();
@@ -109,14 +111,17 @@ pub fn Home() -> Element {
             let read = data_source.read_unchecked();
             &read[0].as_ref().unwrap().source_url.to_string()
         };
-        gloo_net::http::Request::post("https://corsproxy.io/?url=https://gitlucky.fly.dev/vote")
+        reqwest::Client::new()
+            .post("https://corsproxy.io/?url=https://gitlucky.fly.dev/vote")
             .json(&(diff_url, direction))
-            .expect("Failed to serialize JSON")
             .send()
             .await
             .unwrap();
 
+        #[cfg(target_arch = "wasm32")]
         gloo_timers::future::sleep(std::time::Duration::from_secs(1)).await;
+        #[cfg(not(target_arch = "wasm32"))]
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         transitioning.set(None);
     };
 

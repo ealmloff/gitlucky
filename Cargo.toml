@@ -44,9 +44,9 @@ wry = { git = 'https://github.com/ealmloff/wry', branch = 'longer-timeout' }
 
 [features]
 default = ["server"]
-mobile = ["dioxus/mobile"]
+mobile = ["dioxus/mobile", "dep:tokio"]
 server = ["dep:axum", "dep:octocrab", "dep:kalosm", "dep:elevenlabs-api", "dep:openssl", "dep:tokio"]
-desktop = ["dioxus/desktop"]
+desktop = ["dioxus/desktop", "dep:tokio"]
 web = ["dioxus/web"]
 
 [profile.wasm-dev]
