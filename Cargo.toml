@@ -10,14 +10,14 @@ edition = "2021"
 dioxus = { git = "https://github.com/ealmloff/dioxus", branch = "fix-key-validation", features = [
     "router",
 ] }
-openssl = { version = "0.10", features = ["vendored"] }
+openssl = { version = "0.10" }
 axum = { version = "0.7", optional = true }
 tokio = { version = "1.44.1", features = ["full"] }
 octocrab = { version = "0.44.0", optional = true }
 serde = "1.0.219"
 reqwest = { version = "0.12.15", default-features = false, features = [
     "rustls-tls",
-    "json"
+    "json",
 ] }
 kalosm = { git = "https://github.com/floneum/floneum", features = [
     "remote",

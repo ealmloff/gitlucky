@@ -131,6 +131,9 @@ impl Server {
         {
             //return;
         }
+        let s_c = self.clone();
+        let diff_url = payload.pull_request.diff_url.clone().unwrap().to_string();
+        tokio::spawn(async move { s_c.finalize_vote(diff_url).await });
         let pull_request = PullRequest::new_from_payload(payload.clone()).await;
         self.all_prs.write().unwrap().insert(
             pull_request.diff_url.clone(),
@@ -166,8 +169,11 @@ impl Server {
         const MERGE_MINUTES: u64 = 1;
         const VOTE_TIME: Duration = Duration::from_secs(60 * MERGE_MINUTES);
         tokio::time::sleep(VOTE_TIME).await;
-        let mut all_prs = self.all_prs.write().unwrap();
-        let pr = all_prs.remove(&diff_url);
+        let pr = {
+            let mut all_prs = self.all_prs.write().unwrap();
+            all_prs.remove(&diff_url)
+        };
+        println!("Finalizing vote for PR: {:?}", pr);
 
         if let Some(pr) = pr {
             if pr.left_votes > pr.right_votes {

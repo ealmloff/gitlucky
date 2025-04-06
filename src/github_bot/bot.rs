@@ -30,7 +30,7 @@ pub async fn merge(potential_merge: PullRequestInfo) {
             .await
             .unwrap();
     } else if let Err(e) = maybe_octo {
-        println!("Error: {}", e);
+        println!("Error: {:?}", e);
     } else {
         println!("Error: Octocrab failed to build.");
     }
