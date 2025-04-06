@@ -126,6 +126,12 @@ impl Server {
 
     async fn webhook_handler(&self, raw_payload: Json<PullRequestEventPayload>) {
         let payload = raw_payload.0;
+        if payload.action == PullRequestEventAction::Closed {
+            self.all_prs
+                .write()
+                .unwrap()
+                .remove(&payload.pull_request.diff_url.unwrap());
+        }
         if payload.action != PullRequestEventAction::Opened
             || payload.action != PullRequestEventAction::Reopened
         {
