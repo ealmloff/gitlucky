@@ -27,7 +27,8 @@ pub async fn merge(potential_merge: PullRequestInfo) {
                 branch_to_merge, people_accepted, people_denied
             ))
             .send()
-            .await;
+            .await
+            .unwrap();
     }
 }
 

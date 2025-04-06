@@ -170,9 +170,11 @@ impl Server {
         if let Some(pr) = pr {
             if pr.left_votes > pr.right_votes {
                 // merge the PR
+                println!("Merging PR: {:?}", pr.pull_request);
                 crate::github_bot::bot::merge(pr).await;
             } else {
                 // deny the PR
+                println!("Denying PR: {:?}", pr.pull_request);
                 crate::github_bot::bot::deny_merge(pr).await;
             }
         }
