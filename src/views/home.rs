@@ -1,6 +1,8 @@
 use dioxus::prelude::*;
 use std::{fmt::Display, str::FromStr};
 
+use crate::PullRequest;
+
 #[derive(Clone, Copy, PartialEq)]
 enum TransitioningDirection {
     Left,
@@ -11,15 +13,26 @@ enum TransitioningDirection {
 pub fn Home() -> Element {
     let mut transitioning = use_signal(|| None);
     let data = use_resource(move || async move {
-        let response = reqwest::get("https://github.com/floneum/floneum/pull/337.diff")
+        let client = reqwest::Client::new();
+        let info = client
+            .get("https://gitlucky.fly.dev/pr")
+            .send()
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap();
+        println!("info: {}", info);
+        let info: PullRequest = serde_json::from_str(&info).unwrap();
+        let response = reqwest::get(info.diff_url)
             .await
             .unwrap();
         let text = response.text().await.unwrap();
         let diff = GitDiff::from_str(&text).unwrap();
         PRData {
-            repo: "floneum".to_string(),
-            pull_request_title: "Add support for `git diff`".to_string(),
-            user: "Bob".to_string(),
+            repo: info.repo_name,
+            pull_request_title: info.branch_to_merge,
+            user: info.author,
             user_avatar: "https://avatars.githubusercontent.com/u/123456?v=4".to_string(),
             diff,
         }
@@ -35,7 +48,7 @@ pub fn Home() -> Element {
                     return;
                 }
                 let screen_width: f64 = document::eval("return window.innerWidth").join().await.unwrap();
-                transitioning.set(Some(if dbg!(pos.x) < dbg!(screen_width) / 2. {
+                transitioning.set(Some(if pos.x < screen_width / 2. {
                     TransitioningDirection::Left
                 } else {
                     TransitioningDirection::Right
