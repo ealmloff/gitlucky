@@ -1,8 +1,45 @@
+use crate::dioxus_elements::geometry::ClientSpace;
 use dioxus::prelude::*;
+use euclid::Point2D;
+use web_sys::RequestMode;
 use std::{fmt::Display, str::FromStr};
 
 use crate::Direction;
 use crate::PullRequest;
+
+async fn get_pr() -> PullRequest {
+    return PullRequest {
+        diff_url: "https://github.com/DioxusLabs/docsite/pull/467.diff".to_string(),
+        title: String::new(),
+        additions: 0,
+        deletions: 0,
+        changed_files: 0,
+        author: String::new(),
+        repo_name: String::new(),
+        key: None,
+        branch_to_merge: String::new(),
+        branch_to_merge_into: String::new(),
+        pr_number: 0,
+        repo_owner: String::new(),
+        profile_pic_url: "https://avatars.githubusercontent.com/u/1023100?v=4".to_string(),
+    };
+    loop {
+        match gloo_net::http::Request::get("https://corsproxy.io/?url=https://gitlucky.fly.dev/pr")
+            .send()
+            .await
+        {
+            Ok(result) => {
+                let result = result.json::<PullRequest>().await.unwrap();
+                tracing::info!("Fetched PR: {:?}", result);
+                return result;
+            }
+            Err(err) => {
+                tracing::error!("Error fetching PR: {:?}", err);
+            }
+        }
+        gloo_timers::future::sleep(std::time::Duration::from_secs(10)).await;
+    }
+}
 
 #[derive(Clone, Copy, PartialEq)]
 enum TransitioningDirection {
@@ -16,26 +53,11 @@ pub fn Home() -> Element {
     let mut data_source = use_signal(|| [None, None]);
     use_future(move || async move {
         for dst_i in 0..2 {
-            let client = reqwest::Client::new();
-            let info: PullRequest = loop {
-                match client
-                    .get("https://gitlucky.fly.dev/pr")
-                    .send()
-                    .await
-                    .unwrap()
-                    .json::<PullRequest>()
-                    .await
-                {
-                    Ok(result) => {
-                        break result;
-                    }
-                    Err(err) => {
-                        tracing::error!("Error fetching PR: {:?}", err);
-                    }
-                }
-                tokio::time::sleep(std::time::Duration::from_secs(10)).await;
-            };
-            let response = reqwest::get(&info.diff_url).await.unwrap();
+            let info: PullRequest = get_pr().await;
+            let response = gloo_net::http::Request::get(&format!("https://corsproxy.io/?url={}", info.diff_url))
+                .send()
+                .await
+                .unwrap();
             let text = response.text().await.unwrap();
             let diff = GitDiff::from_str(&text).unwrap();
             data_source.write()[dst_i] = Some(PRData {
@@ -50,7 +72,7 @@ pub fn Home() -> Element {
     });
     let mut count = use_signal(|| 0);
     let [Some(first), Some(second)] = &*data_source.read_unchecked() else {
-        return rsx! {"really"};
+        return rsx! {"loading..."};
     };
     let [current, next] = if count() % 2 == 0 {
         [first, second]
@@ -58,99 +80,112 @@ pub fn Home() -> Element {
         [second, first]
     };
 
+    let submit = move |transition_direction: TransitioningDirection| async move {
+        let direction = match transition_direction {
+            TransitioningDirection::Left => Direction::Left,
+            TransitioningDirection::Right => Direction::Right,
+        };
+        transitioning.set(Some(transition_direction));
+        let i = (count() + 1) % 2;
+        spawn(async move {
+            let info: PullRequest = get_pr().await;
+            let response = gloo_net::http::Request::get(&format!("https://corsproxy.io/?url={}", info.diff_url))
+                .send()
+                .await
+                .unwrap();
+            let text = response.text().await.unwrap();
+            let diff = GitDiff::from_str(&text).unwrap();
+            data_source.write()[i] = Some(PRData {
+                source_url: info.diff_url,
+                repo: info.repo_name,
+                pull_request_title: info.branch_to_merge,
+                user: info.author,
+                user_avatar: info.profile_pic_url,
+                diff,
+            });
+            count += 1;
+        });
+        let diff_url = {
+            let read = data_source.read_unchecked();
+            &read[0].as_ref().unwrap().source_url.to_string()
+        };
+        gloo_net::http::Request::post("https://corsproxy.io/?url=https://gitlucky.fly.dev/vote")
+            .json(&(diff_url, direction))
+            .expect("Failed to serialize JSON")
+            .send()
+            .await
+            .unwrap();
+
+        gloo_timers::future::sleep(std::time::Duration::from_secs(1)).await;
+        transitioning.set(None);
+    };
+
+    let handle_click_at_pos = move |pos: Point2D<f64, ClientSpace>| async move {
+        tracing::info!("Clicked at: {:?}", pos);
+        if transitioning().is_some() {
+            return;
+        }
+        let screen_width: f64 = document::eval("return window.innerWidth")
+            .join()
+            .await
+            .unwrap();
+        let direction = if pos.x < screen_width / 2. {
+            TransitioningDirection::Left
+        } else {
+            TransitioningDirection::Right
+        };
+        submit(direction).await;
+    };
+
     rsx! {
         div { class: "absolute flex flex-col w-[100vw] h-[100vh] max-h-[100vh]",
             onclick: move |evt| async move {
                 let pos = evt.client_coordinates();
-                if transitioning().is_some() {
-                    return;
-                }
-                let screen_width: f64 = document::eval("return window.innerWidth").join().await.unwrap();
-                let direction;
-                transitioning.set(Some(if pos.x < screen_width / 2. {
-                    direction = Direction::Left;
-                    TransitioningDirection::Left
-                } else {
-                    direction = Direction::Right;
-                    TransitioningDirection::Right
-                }));
-                let i = (count() + 1) % 2;
-                spawn(async move {
-                    let client = reqwest::Client::new();
-                    let info: PullRequest = loop {
-                        match client
-                            .get("https://gitlucky.fly.dev/pr")
-                            .send()
-                            .await
-                            .unwrap()
-                            .json::<PullRequest>()
-                            .await
-                        {
-                            Ok(result) => {
-                                break result;
-                            }
-                            Err(err) => {
-                                tracing::error!("Error fetching PR: {:?}", err);
-                            }
-                        }
-                        tokio::time::sleep(std::time::Duration::from_secs(10)).await;
-                    };
-                    let response = reqwest::get(&info.diff_url).await.unwrap();
-                    let text = response.text().await.unwrap();
-                    let diff = GitDiff::from_str(&text).unwrap();
-                    data_source.write()[i] = Some(PRData {
-                        source_url: info.diff_url,
-                        repo: info.repo_name,
-                        pull_request_title: info.branch_to_merge,
-                        user: info.author,
-                        user_avatar: info.profile_pic_url,
-                        diff,
-                    });
-                    count += 1;
-                });
-                let diff_url = {
-                    let read = data_source.read_unchecked();
-                    &read[0].as_ref().unwrap().source_url.to_string()
-                };
-                let client = reqwest::Client::new();
-                client.post("https://gitlucky.fly.dev/vote")
-                    .json(&(diff_url, direction))
-                    .send()
-                    .await
-                    .unwrap();
-
-                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-                transitioning.set(None);
+                handle_click_at_pos(pos).await;
+            },
+            ontouchstart: move |evt| async move {
+                let pos = evt.touches()[0].client_coordinates();
+                handle_click_at_pos(pos).await;
             },
             div { class: "absolute flex flex-row w-[100vw]",
                 div {
                     class: "text-left w-[50vw] p-8",
-                    "⬅️ reject"
+                    button {
+                        onclick: move |_| {
+                            submit(TransitioningDirection::Left);
+                        },
+                        "⬅️ reject"
+                    }
                 }
                 div {
                     class: "text-right w-[50vw] p-8",
-                    "accept ➡️"
+                    button {
+                        onclick: move |_| {
+                            submit(TransitioningDirection::Right);
+                        },
+                        "accept ➡️"
+                    }
                 }
             }
-            // div {
-            //     class: "ml-[10vw] mt-[10vh]",
-            //     for card in (0..3 + transitioning().is_some() as usize).rev() {
-            //         Card {
-            //             key: "{card}",
-            //             class: if let Some(dir) = transitioning() { if card == 2 + transitioning().is_some() as usize {
-            //                 "in-card"
-            //             } else if card == 0 {
-            //                 match dir {
-            //                     TransitioningDirection::Right => "right-card",
-            //                     TransitioningDirection::Left => "left-card",
-            //                 }
-            //             } else {
-            //                 "down-card"
-            //             } } else { "card" },
-            //             data: if card == 0 { current.clone() } else { next.clone() },
-            //         }
-            //     }
-            // }
+            div {
+                class: "ml-[10vw] mt-[10vh]",
+                for card in (0..3 + transitioning().is_some() as usize).rev() {
+                    Card {
+                        key: "{card}",
+                        class: if let Some(dir) = transitioning() { if card == 2 + transitioning().is_some() as usize {
+                            "in-card"
+                        } else if card == 0 {
+                            match dir {
+                                TransitioningDirection::Right => "right-card",
+                                TransitioningDirection::Left => "left-card",
+                            }
+                        } else {
+                            "down-card"
+                        } } else { "card" },
+                        data: if card == 0 { current.clone() } else { next.clone() },
+                    }
+                }
+            }
         }
     }
 }

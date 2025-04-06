@@ -10,9 +10,9 @@ edition = "2021"
 dioxus = { git = "https://github.com/ealmloff/dioxus", branch = "fix-key-validation", features = [
     "router",
 ] }
-openssl = { version = "0.10", features = ["vendored"] }
+openssl = { version = "0.10", features = ["vendored"], optional = true }
 axum = { version = "0.7", optional = true }
-tokio = { version = "1.44.1", features = ["full"] }
+tokio = { version = "1.44.1", features = ["full"], optional = true }
 octocrab = { version = "0.44.0", optional = true }
 serde = "1.0.219"
 reqwest = { version = "0.12.15", default-features = false, features = [
@@ -24,9 +24,14 @@ kalosm = { git = "https://github.com/floneum/floneum", features = [
     "language",
 ], optional = true }
 elevenlabs-api = { version = "0.1.1", optional = true }
-rand = "0.9.0"
+rand = { version = "0.9.0" }
 serde_json = "1.0.140"
 tracing = "0.1.41"
+euclid = "0.22.11"
+getrandom = { version = "0.3.2", features = ["wasm_js"] }
+gloo-timers = { version = "0.3.0", features = ["futures"] }
+gloo-net = "0.6.0"
+web-sys = { version = "0.3.77", features = ["RequestMode"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 jni = "0.21.1"
@@ -40,8 +45,9 @@ wry = { git = 'https://github.com/ealmloff/wry', branch = 'longer-timeout' }
 [features]
 default = ["server"]
 mobile = ["dioxus/mobile"]
-server = ["dep:axum", "dep:octocrab", "dep:kalosm", "dep:elevenlabs-api"]
+server = ["dep:axum", "dep:octocrab", "dep:kalosm", "dep:elevenlabs-api", "dep:openssl", "dep:tokio"]
 desktop = ["dioxus/desktop"]
+web = ["dioxus/web"]
 
 [profile.wasm-dev]
 inherits = "dev"
