@@ -24,7 +24,7 @@ async fn get_pr() -> PullRequest {
     //     profile_pic_url: "https://avatars.githubusercontent.com/u/1023100?v=4".to_string(),
     // };
     loop {
-        let result = reqwest::get("https://corsproxy.io/?url=https://gitlucky.fly.dev/pr")
+        let result = reqwest::get("https://gitlucky.fly.dev/pr")
             .await
             .unwrap()
             .json::<PullRequest>()
@@ -58,7 +58,7 @@ pub fn Home() -> Element {
     use_future(move || async move {
         for dst_i in 0..2 {
             let info: PullRequest = get_pr().await;
-            let response = reqwest::get(&format!("https://corsproxy.io/?url={}", info.diff_url))
+            let response = reqwest::get(&format!("{}", info.diff_url))
                 .await
                 .unwrap();
             let text = response.text().await.unwrap();
@@ -92,7 +92,7 @@ pub fn Home() -> Element {
         let i = (count() + 1) % 2;
         spawn(async move {
             let info: PullRequest = get_pr().await;
-            let response = reqwest::get(&format!("https://corsproxy.io/?url={}", info.diff_url))
+            let response = reqwest::get(&format!("{}", info.diff_url))
                 .await
                 .unwrap();
             let text = response.text().await.unwrap();
@@ -112,7 +112,7 @@ pub fn Home() -> Element {
             &read[0].as_ref().unwrap().source_url.to_string()
         };
         reqwest::Client::new()
-            .post("https://corsproxy.io/?url=https://gitlucky.fly.dev/vote")
+            .post("https://gitlucky.fly.dev/vote")
             .json(&(diff_url, direction))
             .send()
             .await
