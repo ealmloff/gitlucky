@@ -17,7 +17,7 @@ use std::{
     time::Duration,
 };
 
-use crate::{ai, PullRequest};
+use crate::{ai, Direction, PullRequest};
 #[cfg(not(feature = "server"))]
 use crate::App;
 
@@ -177,10 +177,4 @@ impl Server {
         pr.key = None;
         pr
     }
-}
-
-#[derive(Serialize, Deserialize)]
-pub enum Direction {
-    Left,
-    Right,
 }

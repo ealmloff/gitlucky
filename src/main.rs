@@ -29,6 +29,13 @@ pub struct PullRequest {
     pub repo_owner: String,
 }
 
+#[derive(Serialize, Deserialize)]
+pub enum Direction {
+    Left,
+    Right,
+}
+
+
 #[cfg(not(feature = "server"))]
 #[derive(Debug, Clone, Routable, PartialEq)]
 #[rustfmt::skip]

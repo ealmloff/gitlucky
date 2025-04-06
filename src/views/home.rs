@@ -1,6 +1,7 @@
 use dioxus::prelude::*;
 use std::{fmt::Display, str::FromStr};
 
+use crate::Direction;
 use crate::PullRequest;
 
 #[derive(Clone, Copy, PartialEq)]
@@ -12,7 +13,7 @@ enum TransitioningDirection {
 #[component]
 pub fn Home() -> Element {
     let mut transitioning = use_signal(|| None);
-    let data = use_resource(move || async move {
+    let data_source = use_resource(move || async move {
         let client = reqwest::Client::new();
         let info = client
             .get("https://gitlucky.fly.dev/pr")
@@ -24,9 +25,7 @@ pub fn Home() -> Element {
             .unwrap();
         println!("info: {}", info);
         let info: PullRequest = serde_json::from_str(&info).unwrap();
-        let response = reqwest::get(info.diff_url)
-            .await
-            .unwrap();
+        let response = reqwest::get(info.diff_url).await.unwrap();
         let text = response.text().await.unwrap();
         let diff = GitDiff::from_str(&text).unwrap();
         PRData {
@@ -36,9 +35,8 @@ pub fn Home() -> Element {
             user_avatar: "https://avatars.githubusercontent.com/u/123456?v=4".to_string(),
             diff,
         }
-    })
-    .suspend()?
-    .read_unchecked();
+    });
+    let data = data_source.suspend()?.read_unchecked();
 
     rsx! {
         div { class: "absolute flex flex-col w-[100vw] h-[100vh] max-h-[100vh]",
@@ -48,11 +46,22 @@ pub fn Home() -> Element {
                     return;
                 }
                 let screen_width: f64 = document::eval("return window.innerWidth").join().await.unwrap();
+                let direction;
                 transitioning.set(Some(if pos.x < screen_width / 2. {
+                    direction = Direction::Left;
                     TransitioningDirection::Left
                 } else {
+                    direction = Direction::Right;
                     TransitioningDirection::Right
                 }));
+                let read = data_source.read_unchecked();
+                let diff_url = &read.as_ref().unwrap().diff;
+                let client = reqwest::Client::new();
+                client.post("https://gitlucky.fly.dev/vote")
+                    .json(&(diff_url, direction))
+                        .send()
+                        .await
+                        .unwrap();
                 tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                 transitioning.set(None);
             },
