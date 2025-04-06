@@ -10,83 +10,113 @@ enum TransitioningDirection {
 #[component]
 pub fn Home() -> Element {
     let mut transitioning = use_signal(|| None);
-    let files = use_resource(move || async move {
-        let response = reqwest::get("https://github.com/floneum/floneum/pull/361.diff").await.unwrap();
+    let data = use_resource(move || async move {
+        let response = reqwest::get("https://github.com/floneum/floneum/pull/337.diff")
+            .await
+            .unwrap();
         let text = response.text().await.unwrap();
-        GitDiff::from_str(&text).unwrap()
+        let diff = GitDiff::from_str(&text).unwrap();
+        PRData {
+            repo: "floneum".to_string(),
+            pull_request_title: "Add support for `git diff`".to_string(),
+            user: "Bob".to_string(),
+            user_avatar: "https://avatars.githubusercontent.com/u/123456?v=4".to_string(),
+            diff,
+        }
     })
-        .suspend()?
-        .read_unchecked();
+    .suspend()?
+    .read_unchecked();
 
     rsx! {
-        // max+1, max, max-1, max-2
-        for card in (0..3 + transitioning().is_some() as usize).rev() {
-            Card {
-                key: "{card}",
-                class: if let Some(dir) = transitioning() { if card == 2 + transitioning().is_some() as usize {
-                    "in-card"
-                } else if card == 0 {
-                    match dir {
-                        TransitioningDirection::Right => "right-card",
-                        TransitioningDirection::Left => "left-card",
-                    }
+        div { class: "absolute flex flex-col w-[100vw] h-[100vh] max-h-[100vh]",
+            onclick: move |evt| async move {
+                let pos = evt.client_coordinates();
+                if transitioning().is_some() {
+                    return;
+                }
+                let screen_width: f64 = document::eval("return window.innerWidth").join().await.unwrap();
+                transitioning.set(Some(if dbg!(pos.x) < dbg!(screen_width) / 2. {
+                    TransitioningDirection::Left
                 } else {
-                    "down-card"
-                } } else { "card" },
-                files: files.clone(),
-            }
-        }
-        div { class: "absolute flex flex-row w-[100vw] h-[100vh]",
-            div {
-                class: "w-[50vw] h-[100vh]",
-                onclick: move |_| async move {
-                    if transitioning().is_some() {
-                        return;
-                    }
-                    transitioning.set(Some(TransitioningDirection::Left));
-                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-                    transitioning.set(None);
-                },
+                    TransitioningDirection::Right
+                }));
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                transitioning.set(None);
+            },
+            div { class: "absolute flex flex-row w-[100vw]",
+                div {
+                    class: "text-left w-[50vw] p-8",
+                    "⬅️ reject"
+                }
+                div {
+                    class: "text-right w-[50vw] p-8",
+                    "accept ➡️"
+                }
             }
             div {
-                class: "w-[50vw] h-[100vh]",
-                onclick: move |_| async move {
-                    if transitioning().is_some() {
-                        return;
+                class: "ml-[10vw] mt-[10vh]",
+                for card in (0..3 + transitioning().is_some() as usize).rev() {
+                    Card {
+                        key: "{card}",
+                        class: if let Some(dir) = transitioning() { if card == 2 + transitioning().is_some() as usize {
+                            "in-card"
+                        } else if card == 0 {
+                            match dir {
+                                TransitioningDirection::Right => "right-card",
+                                TransitioningDirection::Left => "left-card",
+                            }
+                        } else {
+                            "down-card"
+                        } } else { "card" },
+                        data: data.clone(),
                     }
-                    transitioning.set(Some(TransitioningDirection::Right));
-                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-                    transitioning.set(None);
-                },
+                }
             }
         }
     }
 }
 
 #[component]
-fn Card(class: String, files: GitDiff) -> Element {
+fn Card(class: String, data: PRData) -> Element {
     const VIDEO: Asset = asset!("/assets/minecraft.webm", AssetOptions::Unknown);
+    let files = data.diff;
+    let title = data.pull_request_title;
+    let user = data.user;
+    let user_avatar = data.user_avatar;
 
     rsx! {
-        div { class: "w-[100vw] h-[100vh] {class}",
-            div { class: "absolute flex flex-col w-[100vw] h-[100vh] font-mono",
+        div { class: "w-[80vw] h-[80vh] {class}",
+            div { class: "absolute flex flex-col w-[80vw] h-[80vh] font-mono",
                 video {
                     autoplay: true,
                     r#loop: true,
                     muted: true,
-                    class: "w-[100vw] h-full object-cover",
+                    class: "w-[80vw] h-full object-cover rounded-xl",
                     source { src: VIDEO, r#type: "video/webm" }
                 }
             }
-            div { class: "absolute w-[100vw] h-[100vh] font-mono overflow-y-scroll rounded-t-lg",
+            div { class: "absolute w-[80vw] h-[80vh] font-mono border rounded-xl overflow-y-scroll ",
+                div { class: "flex flex-row justify-between align-middle items-center w-[80vw] h-[50px] pl-4 sticky top-0 overflow-ellipsis overflow-clip ml-[-1px] mt-[-1px] border bg-[#6581c8] rounded-t-xl",
+                    span {
+                        class: "font-bold w-[60vw] overflow-ellipsis overflow-clip",
+                        "{title}"
+                    }
+                    div {
+                        class: "flex flex-row items-center",
+                        "{user}"
+                        img { class: "rounded-full w-[40px] h-[40px] mx-4",
+                            src: "{user_avatar}"
+                        }
+                    }
+                }
                 div { class: "flex flex-col backdrop-blur-xs bg-[rgba(255,255,255,0.5)]",
                     for file in &files.files {
-                        div { class: "flex flex-row w-[100vw] border-t font-bold pl-8 sticky h-[25px] top-0 overflow-ellipsis overflow-clip bg-[rgba(195,195,195)]",
+                        div { class: "flex flex-row w-[80vw] font-bold pl-8 sticky h-[25px] top-0 overflow-ellipsis overflow-clip bg-[rgba(195,195,195)]",
                             "{file.old_path} -> {file.new_path}"
                         }
-                        div { class: "flex flex-col w-[100vw]",
+                        div { class: "flex flex-col w-[80vw]",
                             for chunk in &file.changes {
-                                div { class: "flex flex-row w-[100vw] border-b pl-8 sticky top-[25px] h-[25px] overflow-ellipsis overflow-clip bg-[rgba(195,195,195)]",
+                                div { class: "flex flex-row w-[80vw] border-b pl-8 sticky top-[25px] h-[25px] overflow-ellipsis overflow-clip bg-[rgba(195,195,195)]",
                                     "{chunk.old_location} -> {chunk.new_location} @@ {chunk.context}"
                                 }
                                 for line in &chunk.contents {
@@ -118,6 +148,15 @@ fn Card(class: String, files: GitDiff) -> Element {
             }
         }
     }
+}
+
+#[derive(serde::Serialize, serde::Deserialize, PartialEq, Clone)]
+struct PRData {
+    repo: String,
+    pull_request_title: String,
+    user: String,
+    user_avatar: String,
+    diff: GitDiff,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Clone)]
