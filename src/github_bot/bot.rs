@@ -9,13 +9,17 @@ fn read_env_var(var_name: &str) -> String {
 }
 
 async fn get_octocrab() -> Option<octocrab::Octocrab> {
-    let app_id = read_env_var("GITHUB_APP_ID").parse::<u64>().unwrap().into();
+    /*let app_id = read_env_var("GITHUB_APP_ID").parse::<u64>().unwrap().into();
     let app_private_key = include_str!("GITHUB_API_KEY.pem").to_string();
     let crab = octocrab::Octocrab::builder()
         .app(
             AppId(app_id),
             jsonwebtoken::EncodingKey::from_rsa_pem(app_private_key.as_bytes()).unwrap(),
         )
+        .build()
+        .ok();*/
+    let crab = octocrab::Octocrab::builder()
+        .personal_token(read_env_var("GITHUB_TOKEN"))
         .build()
         .ok();
     let _installations = crab
