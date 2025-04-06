@@ -8,21 +8,21 @@ use crate::Direction;
 use crate::PullRequest;
 
 async fn get_pr() -> PullRequest {
-    return PullRequest {
-        diff_url: "https://github.com/DioxusLabs/docsite/pull/467.diff".to_string(),
-        title: String::new(),
-        additions: 0,
-        deletions: 0,
-        changed_files: 0,
-        author: String::new(),
-        repo_name: String::new(),
-        key: None,
-        branch_to_merge: String::new(),
-        branch_to_merge_into: String::new(),
-        pr_number: 0,
-        repo_owner: String::new(),
-        profile_pic_url: "https://avatars.githubusercontent.com/u/1023100?v=4".to_string(),
-    };
+    // return PullRequest {
+    //     diff_url: "https://github.com/DioxusLabs/docsite/pull/467.diff".to_string(),
+    //     title: String::new(),
+    //     additions: 0,
+    //     deletions: 0,
+    //     changed_files: 0,
+    //     author: String::new(),
+    //     repo_name: String::new(),
+    //     key: None,
+    //     branch_to_merge: String::new(),
+    //     branch_to_merge_into: String::new(),
+    //     pr_number: 0,
+    //     repo_owner: String::new(),
+    //     profile_pic_url: "https://avatars.githubusercontent.com/u/1023100?v=4".to_string(),
+    // };
     loop {
         match gloo_net::http::Request::get("https://corsproxy.io/?url=https://gitlucky.fly.dev/pr")
             .send()
