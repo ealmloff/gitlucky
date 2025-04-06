@@ -7,8 +7,6 @@ use crate::server::server::Server;
 use views::Home;
 
 #[cfg(feature = "server")]
-mod ai;
-#[cfg(feature = "server")]
 mod github_bot;
 mod server;
 mod views;

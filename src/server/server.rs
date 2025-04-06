@@ -19,7 +19,7 @@ use std::{
 
 #[cfg(not(feature = "server"))]
 use crate::App;
-use crate::{ai, Direction, PullRequest};
+use crate::{Direction, PullRequest};
 
 impl PullRequest {
     pub fn get_audio_path(&self) -> String {

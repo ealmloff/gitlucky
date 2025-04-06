@@ -1,4 +1,33 @@
+use dioxus::html::g;
+use octocrab::models::{App, AppId};
+
 use crate::server::server::PullRequestInfo;
+
+fn read_env_var(var_name: &str) -> String {
+    let err = format!("Missing environment variable: {var_name}");
+    std::env::var(var_name).expect(&err)
+}
+
+async fn get_octocrab() -> Option<octocrab::Octocrab> {
+    let app_id = read_env_var("GITHUB_APP_ID").parse::<u64>().unwrap().into();
+    let app_private_key = include_str!("GITHUB_API_KEY.pem").to_string();
+    let crab = octocrab::Octocrab::builder()
+        .app(
+            AppId(app_id),
+            jsonwebtoken::EncodingKey::from_rsa_pem(app_private_key.as_bytes()).unwrap(),
+        )
+        .build()
+        .ok();
+    let _installations = crab
+        .as_ref()
+        .unwrap()
+        .apps()
+        .installations()
+        .send()
+        .await
+        .unwrap();
+    crab
+}
 
 pub async fn merge(potential_merge: PullRequestInfo) {
     let PullRequestInfo {
@@ -14,11 +43,9 @@ pub async fn merge(potential_merge: PullRequestInfo) {
     let branch_to_merge_into = pull_request.branch_to_merge_into.clone();
     let repo_owner = pull_request.repo_owner.clone();
     let repo_name = pull_request.repo_name.clone();
-    let maybe_octo = octocrab::Octocrab::builder()
-        .personal_token(token.unwrap())
-        .build();
+    let maybe_octo = get_octocrab().await;
 
-    if let Ok(octocrab) = maybe_octo {
+    if let Some(octocrab) = maybe_octo {
         let _ = octocrab
             .repos(repo_owner, repo_name)
             .merge(&branch_to_merge, branch_to_merge_into)
@@ -29,8 +56,6 @@ pub async fn merge(potential_merge: PullRequestInfo) {
             .send()
             .await
             .unwrap();
-    } else if let Err(e) = maybe_octo {
-        println!("Error: {:?}", e);
     } else {
         println!("Error: Octocrab failed to build.");
     }
@@ -45,10 +70,7 @@ pub async fn deny_merge(potential_merge: PullRequestInfo) {
     let repo_owner = potential_merge.pull_request.repo_owner.clone();
     let repo_name = potential_merge.pull_request.repo_name.clone();
 
-    let octocrab = octocrab::Octocrab::builder()
-        .personal_token(token.unwrap())
-        .build()
-        .unwrap();
+    let octocrab = get_octocrab().await.unwrap();
 
     // Comment on the PR
     let _ = octocrab
@@ -60,12 +82,14 @@ pub async fn deny_merge(potential_merge: PullRequestInfo) {
                 people_accepted, people_denied
             ),
         )
-        .await;
+        .await
+        .unwrap();
 
     let _ = octocrab
         .pulls(repo_owner, repo_name)
         .update(pr_number)
         .state(octocrab::params::pulls::State::Closed)
         .send()
-        .await;
+        .await
+        .unwrap();
 }
