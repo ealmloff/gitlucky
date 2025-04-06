@@ -72,6 +72,7 @@ pub async fn deny_merge(potential_merge: PullRequestInfo) {
 
     let octocrab = get_octocrab().await.unwrap();
 
+    /*
     // Comment on the PR
     let _ = octocrab
         .issues(&repo_owner, &repo_name)
@@ -84,6 +85,7 @@ pub async fn deny_merge(potential_merge: PullRequestInfo) {
         )
         .await
         .unwrap();
+    */
 
     let _ = octocrab
         .pulls(repo_owner, repo_name)
