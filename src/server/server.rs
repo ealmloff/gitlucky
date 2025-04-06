@@ -36,12 +36,6 @@ pub struct PullRequestInfo {
 
 impl PullRequest {
     async fn new_from_payload(payload: PullRequestEventPayload) -> Self {
-        if payload.action != PullRequestEventAction::Opened
-            || payload.action != PullRequestEventAction::Reopened
-        {
-            // break but like not for now
-            println!("Not a valid action: {:?}", payload.action);
-        }
         //println!("payload: {:?}", payload);
         let diff_url = payload.pull_request.diff_url.clone().unwrap();
         let title = payload.pull_request.title.clone().unwrap();
@@ -132,6 +126,11 @@ impl Server {
 
     async fn webhook_handler(&self, raw_payload: Json<PullRequestEventPayload>) {
         let payload = raw_payload.0;
+        if payload.action != PullRequestEventAction::Opened
+            || payload.action != PullRequestEventAction::Reopened
+        {
+            //return;
+        }
         let pull_request = PullRequest::new_from_payload(payload.clone()).await;
         self.all_prs.write().unwrap().insert(
             pull_request.diff_url.clone(),
@@ -152,6 +151,7 @@ impl Server {
     }
 
     pub fn vote_on_pr(&self, diff_url: String, direction: Direction) {
+        println!("Voting on PR: {:?}, {:?}", diff_url, direction);
         let mut all_prs = self.all_prs.write().unwrap();
         if let Some(pr) = all_prs.get_mut(&diff_url) {
             match direction {
@@ -163,7 +163,8 @@ impl Server {
 
     async fn finalize_vote(&self, diff_url: String) {
         // wait for the vote to be finalized after 30 minutes
-        const VOTE_TIME: Duration = Duration::from_secs(60 * 30);
+        const MERGE_MINUTES: u64 = 1;
+        const VOTE_TIME: Duration = Duration::from_secs(60 * MERGE_MINUTES);
         tokio::time::sleep(VOTE_TIME).await;
         let mut all_prs = self.all_prs.write().unwrap();
         let pr = all_prs.remove(&diff_url);

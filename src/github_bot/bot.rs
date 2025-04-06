@@ -14,11 +14,11 @@ pub async fn merge(potential_merge: PullRequestInfo) {
     let branch_to_merge_into = pull_request.branch_to_merge_into.clone();
     let repo_owner = pull_request.repo_owner.clone();
     let repo_name = pull_request.repo_name.clone();
-
-    if let Ok(octocrab) = octocrab::Octocrab::builder()
+    let maybe_octo = octocrab::Octocrab::builder()
         .personal_token(token.unwrap())
-        .build()
-    {
+        .build();
+
+    if let Ok(octocrab) = maybe_octo {
         let _ = octocrab
             .repos(repo_owner, repo_name)
             .merge(&branch_to_merge, branch_to_merge_into)
@@ -29,6 +29,10 @@ pub async fn merge(potential_merge: PullRequestInfo) {
             .send()
             .await
             .unwrap();
+    } else if let Err(e) = maybe_octo {
+        println!("Error: {}", e);
+    } else {
+        println!("Error: Octocrab failed to build.");
     }
 }
 

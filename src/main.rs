@@ -30,7 +30,7 @@ pub struct PullRequest {
     pub profile_pic_url: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Direction {
     Left,
     Right,
