@@ -22,14 +22,6 @@ async fn get_octocrab() -> Option<octocrab::Octocrab> {
         .personal_token(read_env_var("GITHUB_TOKEN"))
         .build()
         .ok();
-    let _installations = crab
-        .as_ref()
-        .unwrap()
-        .apps()
-        .installations()
-        .send()
-        .await
-        .unwrap();
     crab
 }
 
@@ -76,7 +68,6 @@ pub async fn deny_merge(potential_merge: PullRequestInfo) {
 
     let octocrab = get_octocrab().await.unwrap();
 
-    /*
     // Comment on the PR
     let _ = octocrab
         .issues(&repo_owner, &repo_name)
@@ -89,7 +80,6 @@ pub async fn deny_merge(potential_merge: PullRequestInfo) {
         )
         .await
         .unwrap();
-    */
 
     let _ = octocrab
         .pulls(repo_owner, repo_name)
