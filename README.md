@@ -21,7 +21,7 @@ It's anonymous. It's chaotic. It's GitHub... gamified.
 ## 🧪 Try It Out
 
 We have a playground repo just for fun:  
-👉 [GitLuckyPlayground]([https://gitlucky.co/playground](https://github.com/NoodlesOfWrath/GitLuckyPlayground))  
+👉 [GitLuckyPlayground](https://github.com/NoodlesOfWrath/GitLuckyPlayground)  
 The app is already set up on this repo. Go wild!
 
 ## 🛠 Setup
