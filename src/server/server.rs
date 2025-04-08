@@ -64,6 +64,15 @@ impl PullRequest {
             .avatar_url
             .to_string();
 
+        // The heads are something like "owner:branch" so we need to split it and get the branch name
+        let head_label = payload.pull_request.head.label.unwrap();
+        let branch_to_merge = head_label.split(':').nth(1).unwrap();
+
+        let base_label = payload.pull_request.base.label.unwrap();
+        let branch_to_merge_into = base_label.split(':').nth(1).unwrap();
+        println!("Branch to merge: {}", branch_to_merge);
+        println!("Branch to merge into: {}", branch_to_merge_into);
+
         let pr = Self {
             diff_url: diff_url.to_string(),
             title: title,
@@ -74,8 +83,8 @@ impl PullRequest {
             repo_name: repo_name,
             key: Some(key),
             pr_number: payload.pull_request.number,
-            branch_to_merge: payload.pull_request.head.label.unwrap(),
-            branch_to_merge_into: payload.pull_request.base.label.unwrap(),
+            branch_to_merge: branch_to_merge.to_string(),
+            branch_to_merge_into: branch_to_merge_into.to_string(),
             repo_owner: repo_owner.to_string(),
             profile_pic_url,
         };
@@ -126,14 +135,22 @@ impl Server {
 
     async fn webhook_handler(&self, raw_payload: Json<PullRequestEventPayload>) {
         let payload = raw_payload.0;
+        // verify identity of the payload
+        let secret = std::env::var("GITHUB_WEBHOOK_SECRET").unwrap_or_default();
         if payload.action != PullRequestEventAction::Opened
-            || payload.action != PullRequestEventAction::Reopened
+            && payload.action != PullRequestEventAction::Reopened
         {
-            //return;
+            println!("Ignoring action: {:?}", payload.action);
+            return;
         }
+        if payload.pull_request.mergeable == Some(false) {
+            println!("Ignoring unmergeable PR: {:?}", payload.pull_request);
+            return;
+        }
+
         let s_c = self.clone();
         let diff_url = payload.pull_request.diff_url.clone().unwrap().to_string();
-        tokio::spawn(async move { s_c.finalize_vote(diff_url).await });
+        let handle = tokio::spawn(async move { s_c.finalize_vote(diff_url).await });
         let pull_request = PullRequest::new_from_payload(payload.clone()).await;
         self.all_prs.write().unwrap().insert(
             pull_request.diff_url.clone(),
@@ -176,7 +193,7 @@ impl Server {
         println!("Finalizing vote for PR: {:?}", pr);
 
         if let Some(pr) = pr {
-            if pr.left_votes > pr.right_votes {
+            if pr.left_votes < pr.right_votes {
                 // merge the PR
                 println!("Merging PR: {:?}", pr.pull_request);
                 crate::github_bot::bot::merge(pr).await;
