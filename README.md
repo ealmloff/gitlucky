@@ -1,36 +1,38 @@
-# Development
+# 🍀 Git Lucky
 
-Your new jumpstart project includes basic organization with an organized `assets` folder and a `components` folder. 
-If you chose to develop with the router feature, you will also have a `views` folder.
+Ever wanted to approve pull requests like you're swiping on Tinder?  
+**Git Lucky** is a GitHub App that turns PR voting into a game of left or right swipes.
 
-### Tailwind
-1. Install npm: https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
-2. Install the Tailwind CSS CLI: https://tailwindcss.com/docs/installation
-3. Run the following command in the root of the project to start the Tailwind CSS compiler:
+## 🚀 What It Does
 
-```bash
-npx @tailwindcss/cli -i ./input.css -o ./assets/tailwind.css --watch
-```
+- Shows you a random PR from any participating repo.
+- Swipe **right** to approve, **left** to reject.
+- If the majority votes to approve, the PR gets merged.
 
-### Serving Your App
+It's anonymous. It's chaotic. It's GitHub... gamified.
 
-Run the following command in the root of your project to start developing with the default platform:
+## 🔧 How It Works
 
-```
-export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
-export ANDROID_HOME="$HOME/Library/Android/sdk"
-export NDK_HOME="$ANDROID_HOME/ndk/25.2.9519653"
-export PATH="$PATH:$ANDROID_HOME/emulator"
-```
+1. Install the GitHub App on your repo.
+2. PRs submitted to the repo will show up in the Git Lucky queue.
+3. Users vote via a swipe-style interface.
+4. Once enough votes are cast, the app auto-merges or closes the PR based on the majority.
 
-```
-[System.Environment]::SetEnvironmentVariable("JAVA_HOME", "C:\Program Files\Android\Android Studio\jbr", "User")
-[System.Environment]::SetEnvironmentVariable("ANDROID_HOME", "$env:LocalAppData\Android\Sdk", "User")
-[System.Environment]::SetEnvironmentVariable("NDK_HOME", "$env:LocalAppData\Android\Sdk\ndk\25.2.9519653", "User")
-```
+## 🧪 Try It Out
 
-```bash
-cargo install dioxus-cli
-dx serve --platform android
-dx serve --platform desktop --features dioxus --no-default-features
-```
+We have a playground repo just for fun:  
+👉 [GitLuckyPlayground]([https://gitlucky.co/playground](https://github.com/NoodlesOfWrath/GitLuckyPlayground))  
+The app is already set up on this repo. Go wild!
+
+## 🛠 Setup
+
+1. [Install the GitHub App](https://github.com/apps/gitluckyapp)
+2. That’s it. Seriously.
+
+## ⚠️ Disclaimer
+
+This is a joke project built for a hackathon. Don’t use it on production unless you’re feeling *really* lucky.
+
+---
+
+Made with ❤️ and questionable judgment at HackKU25
