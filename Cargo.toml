@@ -27,7 +27,8 @@ getrandom = { version = "0.3.2", features = ["wasm_js"] }
 gloo-timers = { version = "0.3.0", features = ["futures"] }
 gloo-net = "0.6.0"
 web-sys = { version = "0.3.77", features = ["RequestMode"] }
-jsonwebtoken = "9.3.1"
+jsonwebtoken = { version = "9.3.1", optional = true }
+tower-http = { version = "0.6.2", features = ["fs"], optional = true }
 
 [target.'cfg(target_os = "android")'.dependencies]
 jni = "0.21.1"
@@ -41,7 +42,7 @@ wry = { git = 'https://github.com/ealmloff/wry', branch = 'longer-timeout' }
 [features]
 default = ["server"]
 mobile = ["dioxus/mobile", "dep:tokio"]
-server = ["dep:axum", "dep:octocrab", "dep:openssl", "dep:tokio"]
+server = ["dep:axum", "dep:octocrab", "dep:openssl", "dep:tokio", "dep:jsonwebtoken", "dep:tower-http"]
 desktop = ["dioxus/desktop", "dep:tokio"]
 web = ["dioxus/web"]
 
