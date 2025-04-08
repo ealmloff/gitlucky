@@ -89,16 +89,33 @@ pub async fn merge(potential_merge: PullRequestInfo) {
                 repo_owner, repo_name, branch_to_merge, branch_to_merge_into
             );
 
-            let _ = crab
-                .repos(repo_owner, repo_name)
+            let result = crab
+                .repos(&repo_owner, &repo_name)
                 .merge(&token.unwrap(), branch_to_merge_into)
                 .commit_message(format!(
                     "The people have merged {}, {} accepted, {} denied.",
                     branch_to_merge, people_accepted, people_denied
                 ))
                 .send()
-                .await
-                .unwrap();
+                .await;
+
+            if let Err(e) = result {
+                match e {
+                    octocrab::Error::GitHub { source, backtrace } => {
+                        if source.message.contains("Merge conflict") {
+                            let comment = "The people wanted to merge this PR, but there was a merge conflict. Please resolve the conflict and try again.".to_string();
+                            let _ = crab
+                                .issues(&repo_owner, &repo_name)
+                                .create_comment(pr_number, comment)
+                                .await
+                                .unwrap();
+                        } else {
+                            println!("GitHub error: {:?}", source);
+                        }
+                    }
+                    _ => println!("Error: {:?}", e),
+                }
+            }
         }
     } else {
         println!("Error: Octocrab failed to build.");
