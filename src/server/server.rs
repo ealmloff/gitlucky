@@ -282,7 +282,7 @@ impl Server {
     }
 
     /// Shuts down the server properly, saving everything
-    pub fn shutdown(&mut self) {
+    pub fn shutdown(&self) {
         println!("Server is shutting down...");
         // Save the state of the server to a file
         let all_prs = self.all_prs.read().unwrap();
