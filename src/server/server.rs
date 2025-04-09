@@ -144,6 +144,16 @@ impl Server {
                 s_c.clone().vote_on_pr(diff_url, direction);
             }),
         );
+        let s_c = server.clone();
+        // Gracefully shutdown the server
+        tokio::spawn(async move {
+            tokio::signal::ctrl_c()
+                .await
+                .expect("Failed to listen for shutdown signal");
+            s_c.shutdown(); // This runs on CTRL+C
+            std::process::exit(0); // Ensure program exits
+        });
+
         router = router.fallback_service(
             get_service(
                 tower_http::services::ServeDir::new("target/dx/gitlucky/debug/web/public")
