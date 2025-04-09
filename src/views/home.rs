@@ -24,13 +24,12 @@ async fn get_pr() -> PullRequest {
     //     profile_pic_url: "https://avatars.githubusercontent.com/u/1023100?v=4".to_string(),
     // };
     loop {
-        let result = reqwest::get("https://gitlucky.fly.dev/pr")
-            .await
-            .unwrap()
-            .json::<PullRequest>()
+        let result = gloo_net::http::Request::get("/pr")
+            .send()
             .await;
         match result {
             Ok(result) => {
+                let result = result.json::<PullRequest>().await.unwrap();
                 tracing::info!("Fetched PR: {:?}", result);
                 return result;
             }
@@ -58,10 +57,7 @@ pub fn Home() -> Element {
     use_future(move || async move {
         for dst_i in 0..2 {
             let info: PullRequest = get_pr().await;
-            let response = reqwest::get(&format!("{}", info.diff_url))
-                .await
-                .unwrap();
-            let text = response.text().await.unwrap();
+            let text = &info.diff;
             let diff = GitDiff::from_str(&text).unwrap();
             data_source.write()[dst_i] = Some(PRData {
                 source_url: info.diff_url,
@@ -111,9 +107,9 @@ pub fn Home() -> Element {
             let read = data_source.read_unchecked();
             &read[0].as_ref().unwrap().source_url.to_string()
         };
-        reqwest::Client::new()
-            .post("https://gitlucky.fly.dev/vote")
+        gloo_net::http::Request::post("/vote")
             .json(&(diff_url, direction))
+            .expect("Failed to serialize JSON")
             .send()
             .await
             .unwrap();

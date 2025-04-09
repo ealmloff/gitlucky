@@ -14,6 +14,7 @@ mod views;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PullRequest {
     pub diff_url: String,
+    pub diff: String,
     pub title: String,
     pub additions: usize,
     pub deletions: usize,

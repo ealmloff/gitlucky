@@ -72,9 +72,16 @@ impl PullRequest {
         let branch_to_merge_into = base_label.split(':').nth(1).unwrap();
         println!("Branch to merge: {}", branch_to_merge);
         println!("Branch to merge into: {}", branch_to_merge_into);
+        let diff = reqwest::get(diff_url.clone())
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap();
 
         let pr = Self {
             diff_url: diff_url.to_string(),
+            diff,
             title: title,
             additions: additions as usize,
             deletions: deletions as usize,
@@ -113,7 +120,9 @@ impl Server {
             "/", // The github webhook
             post(move |payload: Json<PullRequestEventPayload>| async move {
                 s_c.webhook_handler(payload).await;
-            }),
+            }).get_service(
+                tower_http::services::ServeFile::new("target/dx/gitlucky/debug/web/public/index.html")
+            )
         );
         let s_c = server.clone();
         router = router.route(
@@ -127,6 +136,13 @@ impl Server {
                 let (diff_url, direction) = payload.0;
                 s_c.clone().vote_on_pr(diff_url, direction);
             }),
+        );
+        router = router.fallback_service(
+            get_service(
+                tower_http::services::ServeDir::new("target/dx/gitlucky/debug/web/public")
+                    .append_index_html_on_directories(true),
+            )
+            .handle_error(|_| async { (axum::http::StatusCode::INTERNAL_SERVER_ERROR, ()) }),
         );
 
         axum::serve(listener, router).await.unwrap();
