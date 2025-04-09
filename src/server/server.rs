@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     env,
+    io::Write,
     sync::{Arc, RwLock},
     time::Duration,
 };
@@ -31,7 +32,7 @@ impl PullRequest {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PullRequestInfo {
     pub pull_request: PullRequest,
     pub left_votes: usize,
@@ -162,7 +163,18 @@ impl Server {
         let all_prs: Vec<PullRequestInfo> = serde_json::from_reader(file).unwrap();
         let mut all_prs_map = HashMap::new();
         for pr in all_prs {
-            all_prs_map.insert(pr.pull_request.diff_url.clone(), pr);
+            all_prs_map.insert(pr.pull_request.diff_url.clone(), pr.clone());
+            // Start the vote finalization task
+            let s_c = self.clone();
+            let diff_url = pr.pull_request.diff_url.clone();
+            let delay_lenth_secs = (pr.creation_time.timestamp() - chrono::Utc::now().timestamp())
+                as u64
+                + 60 * MERGE_MINUTES;
+
+            let delay_length_mins = delay_lenth_secs / 60;
+
+            let handle =
+                tokio::spawn(async move { s_c.finalize_vote(diff_url, delay_length_mins).await });
         }
         let mut all_prs = self.all_prs.write().unwrap();
         all_prs.clear();
@@ -258,11 +270,9 @@ impl Server {
         pr.key = None;
         pr
     }
-}
 
-// Handle crashes
-impl Drop for Server {
-    fn drop(&mut self) {
+    /// Shuts down the server properly, saving everything
+    pub fn shutdown(&mut self) {
         println!("Server is shutting down...");
         // Save the state of the server to a file
         let all_prs = self.all_prs.read().unwrap();

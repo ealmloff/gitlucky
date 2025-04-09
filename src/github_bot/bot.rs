@@ -53,6 +53,7 @@ pub async fn merge(potential_merge: PullRequestInfo) {
         pull_request,
         left_votes,
         right_votes,
+        creation_time,
     } = potential_merge;
 
     let token = pull_request.key.clone();

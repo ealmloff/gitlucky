@@ -53,7 +53,8 @@ async fn main() {
 
     println!("Starting server...");
     // let dioxus_logger = dioxus::logger::init(Level::TRACE);
-    let server = Server::new().await;
+    let mut server = Server::new().await;
+    server.shutdown();
 }
 
 #[cfg(not(feature = "server"))]
