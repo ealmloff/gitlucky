@@ -3,6 +3,9 @@ use axum::{
     Json, Router,
 };
 
+// 1 day
+const MERGE_MINUTES: u64 = 60 * 24;
+
 #[cfg(not(feature = "server"))]
 use dioxus::prelude::{DioxusRouterExt, ServeConfig};
 use octocrab::models::{
@@ -33,6 +36,7 @@ pub struct PullRequestInfo {
     pub pull_request: PullRequest,
     pub left_votes: usize,
     pub right_votes: usize,
+    pub creation_time: chrono::DateTime<chrono::Utc>,
 }
 
 impl PullRequest {
@@ -112,7 +116,7 @@ impl Server {
         let addr = "0.0.0.0:8080";
 
         let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-        let server = Self {
+        let mut server = Self {
             all_prs: Arc::new(RwLock::new(HashMap::new())),
         };
 
@@ -148,7 +152,21 @@ impl Server {
         );
 
         axum::serve(listener, router).await.unwrap();
+        server.load_prs();
         server
+    }
+
+    fn load_prs(&self) {
+        // Load the prs from the file
+        let file = std::fs::File::open("prs.json").unwrap();
+        let all_prs: Vec<PullRequestInfo> = serde_json::from_reader(file).unwrap();
+        let mut all_prs_map = HashMap::new();
+        for pr in all_prs {
+            all_prs_map.insert(pr.pull_request.diff_url.clone(), pr);
+        }
+        let mut all_prs = self.all_prs.write().unwrap();
+        all_prs.clear();
+        all_prs.extend(all_prs_map);
     }
 
     async fn webhook_handler(&self, raw_payload: Json<PullRequestEventPayload>) {
@@ -166,7 +184,11 @@ impl Server {
 
         let s_c = self.clone();
         let diff_url = payload.pull_request.diff_url.clone().unwrap().to_string();
-        let handle = tokio::spawn(async move { s_c.finalize_vote(diff_url).await });
+        let handle = tokio::spawn(async move { s_c.finalize_vote(diff_url, MERGE_MINUTES).await });
+        let creation_time = payload
+            .pull_request
+            .created_at
+            .unwrap_or(chrono::Utc::now());
         let pull_request = PullRequest::new_from_payload(payload.clone()).await;
         self.all_prs.write().unwrap().insert(
             pull_request.diff_url.clone(),
@@ -174,6 +196,7 @@ impl Server {
                 pull_request: pull_request.clone(),
                 left_votes: 0,
                 right_votes: 0,
+                creation_time,
             },
         );
     }
@@ -197,11 +220,10 @@ impl Server {
         }
     }
 
-    async fn finalize_vote(&self, diff_url: String) {
-        // wait for the vote to be finalized after 1 day
-        const MERGE_MINUTES: u64 = 60 * 24;
-        const VOTE_TIME: Duration = Duration::from_secs(60 * MERGE_MINUTES);
-        tokio::time::sleep(VOTE_TIME).await;
+    async fn finalize_vote(&self, diff_url: String, delay_minutes: u64) {
+        // wait for the vote to be finalized after a certain amount of time
+        let vote_time: Duration = Duration::from_secs(60 * delay_minutes);
+        tokio::time::sleep(vote_time).await;
         let pr = {
             let mut all_prs = self.all_prs.write().unwrap();
             all_prs.remove(&diff_url)
@@ -235,5 +257,19 @@ impl Server {
             .clone();
         pr.key = None;
         pr
+    }
+}
+
+// Handle crashes
+impl Drop for Server {
+    fn drop(&mut self) {
+        println!("Server is shutting down...");
+        // Save the state of the server to a file
+        let all_prs = self.all_prs.read().unwrap();
+        let mut file = std::fs::File::create("prs.json").unwrap();
+        let all_prs: Vec<PullRequestInfo> = all_prs.values().cloned().collect();
+        let all_prs = serde_json::to_string(&all_prs).unwrap();
+        file.write_all(all_prs.as_bytes()).unwrap();
+        println!("Saved state to prs.json");
     }
 }
