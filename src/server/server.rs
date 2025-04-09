@@ -13,6 +13,7 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
+    env,
     sync::{Arc, RwLock},
     time::Duration,
 };
@@ -120,9 +121,10 @@ impl Server {
             "/", // The github webhook
             post(move |payload: Json<PullRequestEventPayload>| async move {
                 s_c.webhook_handler(payload).await;
-            }).get_service(
-                tower_http::services::ServeFile::new("target/dx/gitlucky/debug/web/public/index.html")
-            )
+            })
+            .get_service(tower_http::services::ServeFile::new(
+                "target/dx/gitlucky/debug/web/public/index.html",
+            )),
         );
         let s_c = server.clone();
         router = router.route(
@@ -151,8 +153,6 @@ impl Server {
 
     async fn webhook_handler(&self, raw_payload: Json<PullRequestEventPayload>) {
         let payload = raw_payload.0;
-        // verify identity of the payload
-        let secret = std::env::var("GITHUB_WEBHOOK_SECRET").unwrap_or_default();
         if payload.action != PullRequestEventAction::Opened
             && payload.action != PullRequestEventAction::Reopened
         {
@@ -198,8 +198,8 @@ impl Server {
     }
 
     async fn finalize_vote(&self, diff_url: String) {
-        // wait for the vote to be finalized after 30 minutes
-        const MERGE_MINUTES: u64 = 1;
+        // wait for the vote to be finalized after 1 day
+        const MERGE_MINUTES: u64 = 60 * 24;
         const VOTE_TIME: Duration = Duration::from_secs(60 * MERGE_MINUTES);
         tokio::time::sleep(VOTE_TIME).await;
         let pr = {
