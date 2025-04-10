@@ -162,20 +162,24 @@ impl Server {
             .handle_error(|_| async { (axum::http::StatusCode::INTERNAL_SERVER_ERROR, ()) }),
         );
 
-        axum::serve(listener, router).await.unwrap();
         server.load_prs();
+        axum::serve(listener, router).await.unwrap();
         server
     }
 
     fn load_prs(&self) {
         // Load the prs from the file
-        let file = std::fs::File::open("prs.json").unwrap();
+        let file = std::fs::File::open("/data/prs.json");
+        if file.is_err() {
+            println!("No prs.json file found, starting with empty PRs.");
+            return;
+        }
+        let file = file.unwrap();
         let all_prs: Vec<PullRequestInfo> = serde_json::from_reader(file).unwrap();
         let mut all_prs_map = HashMap::new();
         for pr in all_prs {
             all_prs_map.insert(pr.pull_request.diff_url.clone(), pr.clone());
             // Start the vote finalization task
-            let s_c = self.clone();
             let diff_url = pr.pull_request.diff_url.clone();
             let delay_lenth_secs = (pr.creation_time.timestamp() - chrono::Utc::now().timestamp())
                 as u64
@@ -183,8 +187,10 @@ impl Server {
 
             let delay_length_mins = delay_lenth_secs / 60;
 
+            let s_c = self.clone();
             let handle =
                 tokio::spawn(async move { s_c.finalize_vote(diff_url, delay_length_mins).await });
+            println!("Loaded PR: {:?}", pr.pull_request);
         }
         let mut all_prs = self.all_prs.write().unwrap();
         all_prs.clear();
@@ -284,12 +290,31 @@ impl Server {
     /// Shuts down the server properly, saving everything
     pub fn shutdown(&self) {
         println!("Server is shutting down...");
-        // Save the state of the server to a file
-        let all_prs = self.all_prs.read().unwrap();
-        let mut file = std::fs::File::create("prs.json").unwrap();
-        let all_prs: Vec<PullRequestInfo> = all_prs.values().cloned().collect();
-        let all_prs = serde_json::to_string(&all_prs).unwrap();
-        file.write_all(all_prs.as_bytes()).unwrap();
-        println!("Saved state to prs.json");
+
+        // Create directory if it doesn't exist
+        std::fs::create_dir_all("/data").unwrap_or_else(|e| {
+            println!("Failed to create /data directory: {}", e);
+        });
+
+        // Save the state of the server to the mounted volume
+        match std::fs::File::create("/data/prs.json") {
+            Ok(mut file) => {
+                let all_prs = self.all_prs.read().unwrap();
+                let all_prs_vec: Vec<PullRequestInfo> = all_prs.values().cloned().collect();
+
+                match serde_json::to_string_pretty(&all_prs_vec) {
+                    Ok(json) => {
+                        use std::io::Write;
+                        if let Err(e) = file.write_all(json.as_bytes()) {
+                            println!("Failed to write data: {}", e);
+                        } else {
+                            println!("Successfully saved data to /data/prs.json");
+                        }
+                    }
+                    Err(e) => println!("Failed to serialize data: {}", e),
+                }
+            }
+            Err(e) => println!("Failed to create file: {}", e),
+        }
     }
 }
