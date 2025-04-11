@@ -88,10 +88,7 @@ pub fn Home() -> Element {
         let i = (count() + 1) % 2;
         spawn(async move {
             let info: PullRequest = get_pr().await;
-            let response = reqwest::get(&format!("{}", info.diff_url))
-                .await
-                .unwrap();
-            let text = response.text().await.unwrap();
+            let text = &info.diff;
             let diff = GitDiff::from_str(&text).unwrap();
             data_source.write()[i] = Some(PRData {
                 source_url: info.diff_url,
